@@ -6,6 +6,7 @@ Potree.Viewer = function(domElement, args){
 	
 	this.renderArea = domElement;
 	
+	
 
 	//if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
 	//	defaultSettings.navigation = "Orbit";
@@ -26,14 +27,29 @@ Potree.Viewer = function(domElement, args){
 	this.useDEMCollisions = false;
 	this.minNodeSize = 100;
 	this.directionalLight;
-	this.edlScale = 1;
-	this.edlRadius = 3;
+	this.edlStrength = 1.0;
+	this.edlRadius = 1.4;
 	this.useEDL = false;
 	this.minimumJumpDistance = 0.2;
 	this.jumpDistance = null;
 	this.intensityMax = null;
 	this.heightMin = null;
 	this.heightMax = null;
+	this.materialTransition = 0.5;
+	this.weightRGB = 1.0;
+	this.weightIntensity = 0.0;
+	this.weightElevation = 0.0;
+	this.weightClassification = 0.0;
+	this.weightReturnNumber = 0.0;
+	this.weightSourceID = 0.0;
+	this.intensityRange = [0, 65000];
+	this.intensityGamma = 1;
+	this.intensityContrast = 0;
+	this.intensityBrightness = 0;
+	this.rgbGamma = 1;
+	this.rgbContrast = 0;
+	this.rgbBrightness = 0;
+	
 	this.moveSpeed = 10;
 
 	this.showDebugInfos = false;
@@ -63,7 +79,7 @@ Potree.Viewer = function(domElement, args){
 	this.transformationTool;
 	
 	var skybox;
-	var stats;
+	this.stats;
 	var clock = new THREE.Clock();
 	this.showSkybox = false;
 	this.referenceFrame;
@@ -161,7 +177,7 @@ Potree.Viewer = function(domElement, args){
 			
 			scope.dispatchEvent({"type": "pointcloud_loaded", "pointcloud": pointcloud});
 			
-			callback({type: "pointclouad_loaded", pointcloud: pointcloud});
+			callback({type: "pointcloud_loaded", pointcloud: pointcloud});
 		};
 		this.addEventListener("pointcloud_loaded", pointCloudLoadedCallback);
 		
@@ -282,6 +298,161 @@ Potree.Viewer = function(domElement, args){
 		return {min: scope.heightMin, max: scope.heightMax};
 	};
 	
+	this.setIntensityRange = function(min, max){
+		if(scope.intensityRange[0] !== min || scope.intensityRange[1] !== max){
+			scope.intensityRange[0] = min || scope.intensityRange[0];
+			scope.intensityRange[1] = max || scope.intensityRange[1];
+			scope.dispatchEvent({"type": "intensity_range_changed", "viewer": scope});
+		}
+	};
+	
+	this.getIntensityRange = function(){
+		return scope.intensityRange;
+	};
+	
+	this.setIntensityGamma = function(value){
+		if(scope.intensityGamma !== value){
+			scope.intensityGamma = value;
+			scope.dispatchEvent({"type": "intensity_gamma_changed", "viewer": scope});
+		}
+	};
+	
+	this.getIntensityGamma = function(){
+		return scope.intensityGamma;
+	};
+	
+	this.setIntensityContrast = function(value){
+		if(scope.intensityContrast !== value){
+			scope.intensityContrast = value;
+			scope.dispatchEvent({"type": "intensity_contrast_changed", "viewer": scope});
+		}
+	};
+	
+	this.getIntensityContrast = function(){
+		return scope.intensityContrast;
+	};
+	
+	this.setIntensityBrightness = function(value){
+		if(scope.intensityBrightness !== value){
+			scope.intensityBrightness = value;
+			scope.dispatchEvent({"type": "intensity_brightness_changed", "viewer": scope});
+		}
+	};
+	
+	this.getIntensityBrightness = function(){
+		return scope.intensityBrightness;
+	};
+	
+	this.setRGBGamma = function(value){
+		if(scope.rgbGamma !== value){
+			scope.rgbGamma = value;
+			scope.dispatchEvent({"type": "rgb_gamma_changed", "viewer": scope});
+		}
+	};
+	
+	this.getRGBGamma = function(){
+		return scope.rgbGamma;
+	};
+	
+	this.setRGBContrast = function(value){
+		if(scope.rgbContrast !== value){
+			scope.rgbContrast = value;
+			scope.dispatchEvent({"type": "rgb_contrast_changed", "viewer": scope});
+		}
+	};
+	
+	this.getRGBContrast = function(){
+		return scope.rgbContrast;
+	};
+	
+	this.setRGBBrightness = function(value){
+		if(scope.rgbBrightness !== value){
+			scope.rgbBrightness = value;
+			scope.dispatchEvent({"type": "rgb_brightness_changed", "viewer": scope});
+		}
+	};
+	
+	this.getRGBBrightness = function(){
+		return scope.rgbBrightness;
+	};
+	
+	this.setMaterialTransition = function(t){
+		if(scope.materialTransition !== t){
+			scope.materialTransition = t;
+			scope.dispatchEvent({"type": "material_transition_changed", "viewer": scope});
+		}
+	};
+	
+	this.getMaterialTransition = function(){
+		return scope.materialTransition;
+	};
+	
+	this.setWeightRGB = function(w){
+		if(scope.weightRGB !== w){
+			scope.weightRGB = w;
+			scope.dispatchEvent({"type": "attribute_weights_changed", "viewer": scope});
+		}
+	};
+	
+	this.getWeightRGB = function(){
+		return scope.weightRGB;
+	};
+	
+	this.setWeightIntensity = function(w){
+		if(scope.weightIntensity !== w){
+			scope.weightIntensity = w;
+			scope.dispatchEvent({"type": "attribute_weights_changed", "viewer": scope});
+		}
+	};
+	
+	this.getWeightIntensity = function(){
+		return scope.weightIntensity;
+	};
+	
+	this.setWeightElevation = function(w){
+		if(scope.weightElevation !== w){
+			scope.weightElevation = w;
+			scope.dispatchEvent({"type": "attribute_weights_changed", "viewer": scope});
+		}
+	};
+	
+	this.getWeightElevation = function(){
+		return scope.weightElevation;
+	};
+	
+	this.setWeightClassification = function(w){
+		if(scope.weightClassification !== w){
+			scope.weightClassification = w;
+			scope.dispatchEvent({"type": "attribute_weights_changed", "viewer": scope});
+		}
+	};
+	
+	this.getWeightClassification = function(){
+		return scope.weightClassification;
+	};
+	
+	this.setWeightReturnNumber = function(w){
+		if(scope.weightReturnNumber !== w){
+			scope.weightReturnNumber = w;
+			scope.dispatchEvent({"type": "attribute_weights_changed", "viewer": scope});
+		}
+	};
+	
+	this.getWeightReturnNumber = function(){
+		return scope.weightReturnNumber;
+	};
+	
+	this.setWeightSourceID = function(w){
+		if(scope.weightSourceID !== w){
+			scope.weightSourceID = w;
+			scope.dispatchEvent({"type": "attribute_weights_changed", "viewer": scope});
+		}
+	};
+	
+	this.getWeightSourceID = function(){
+		return scope.weightSourceID;
+	};
+	
 	this.setIntensityMax = function(max){
 		if(scope.intensityMax !== max){
 			scope.intensityMax = max;
@@ -360,14 +531,14 @@ Potree.Viewer = function(domElement, args){
 	};
 	
 	this.setEDLStrength = function(value){
-		if(scope.edlScale !== value){
-			scope.edlScale = value;
+		if(scope.edlStrength !== value){
+			scope.edlStrength = value;
 			scope.dispatchEvent({"type": "edl_strength_changed", "viewer": scope});
 		}
 	};
 	
 	this.getEDLStrength = function(){
-		return scope.edlScale;
+		return scope.edlStrength;
 	};
 	
 	this.setPointSize = function(value){
@@ -546,6 +717,10 @@ Potree.Viewer = function(domElement, args){
 			return Potree.PointColorType.NORMAL;
 		}else if(materialName === "Phong"){
 			return Potree.PointColorType.PHONG;
+		}else if(materialName === "RGB and Elevation"){
+			return Potree.PointColorType.RGB_HEIGHT;
+		}else if(materialName === "Composite"){
+			return Potree.PointColorType.COMPOSITE;
 		}
 	};
 	
@@ -574,6 +749,10 @@ Potree.Viewer = function(domElement, args){
 			return "Normal";
 		}else if(materialID === Potree.PointColorType.PHONG){
 			return "Phong";
+		}else if(materialID === Potree.PointColorType.RGB_HEIGHT){
+			return "RGB and Elevation";
+		}else if(materialID === Potree.PointColorType.COMPOSITE){
+			return "Composite";
 		}
 	};
 	
@@ -740,7 +919,7 @@ Potree.Viewer = function(domElement, args){
 		
 		scope.referenceFrame.updateMatrixWorld(true);
 		var box = scope.getBoundingBox();
-		scope.referenceFrame.position.copy(box.center()).multiplyScalar(-1);
+		scope.referenceFrame.position.copy(box.getCenter()).multiplyScalar(-1);
 		scope.referenceFrame.position.y = -box.min.y;
 		scope.referenceFrame.updateMatrixWorld(true);
 		
@@ -952,13 +1131,6 @@ Potree.Viewer = function(domElement, args){
 		viewer.renderArea.insertBefore(imgMapToggle, viewer.renderArea.children[0]);
 		viewer.renderArea.insertBefore(imgMenuToggle, viewer.renderArea.children[0]);
 		
-		
-		
-		//$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '../src/viewer/viewer.css') );		
-		//$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', "../libs/bootstrap/css/bootstrap.min.css"));
-		//$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', "../libs/jasny-bootstrap/css/jasny-bootstrap.css"));
-		//$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', "../libs/jasny-bootstrap/css/navmenu-reveal.css" ));
-		//$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', "../libs/jquery-ui-1.11.4/jquery-ui.css"	));
 		
 		//var elProfile = $('<div style="position: absolute; width: 100%; height: 30%; bottom: 0; display: none" >');
 		var elProfile = $('<div>').load(new URL(Potree.scriptPath + "/profile.html").href, function(){
@@ -1320,11 +1492,26 @@ Potree.Viewer = function(domElement, args){
 			pointcloud.material.clipMode = scope.clipMode;
 			pointcloud.material.heightMin = scope.heightMin;
 			pointcloud.material.heightMax = scope.heightMax;
-			pointcloud.material.intensityMin = 0;
-			pointcloud.material.intensityMax = scope.intensityMax;
+			//pointcloud.material.intensityMin = 0;
+			//pointcloud.material.intensityMax = scope.intensityMax;
+			pointcloud.material.uniforms.intensityRange.value = scope.getIntensityRange();
+			pointcloud.material.uniforms.intensityGamma.value = scope.getIntensityGamma();
+			pointcloud.material.uniforms.intensityContrast.value = scope.getIntensityContrast();
+			pointcloud.material.uniforms.intensityBrightness.value = scope.getIntensityBrightness();
+			pointcloud.material.uniforms.rgbGamma.value = scope.getRGBGamma();
+			pointcloud.material.uniforms.rgbContrast.value = scope.getRGBContrast();
+			pointcloud.material.uniforms.rgbBrightness.value = scope.getRGBBrightness();
 			pointcloud.showBoundingBox = scope.showBoundingBox;
 			pointcloud.generateDEM = scope.useDEMCollisions;
 			pointcloud.minimumNodePixelSize = scope.minNodeSize;
+			pointcloud.material.uniforms.transition.value = scope.materialTransition;
+			
+			pointcloud.material.uniforms.wRGB.value = scope.getWeightRGB();
+			pointcloud.material.uniforms.wIntensity.value = scope.getWeightIntensity();
+			pointcloud.material.uniforms.wElevation.value = scope.getWeightElevation();
+			pointcloud.material.uniforms.wClassification.value = scope.getWeightClassification();
+			pointcloud.material.uniforms.wReturnNumber.value = scope.getWeightReturnNumber();
+			pointcloud.material.uniforms.wSourceID.value = scope.getWeightSourceID();
 			
 			//if(!scope.freeze){
 			//	pointcloud.update(scope.camera, scope.renderer);
@@ -1496,8 +1683,8 @@ Potree.Viewer = function(domElement, args){
 
 		this.render = function(){
 			{// resize
-				var width = scope.renderArea.clientWidth;
-				var height = scope.renderArea.clientHeight;
+				var width = scaleFactor * scope.renderArea.clientWidth;
+				var height = scaleFactor * scope.renderArea.clientHeight;
 				var aspect = width / height;
 				
 				scope.camera.aspect = aspect;
@@ -1507,6 +1694,8 @@ Potree.Viewer = function(domElement, args){
 			}
 			
 
+			//var queryAll = Potree.startQuery("All", viewer.renderer.getContext());
+			
 			// render skybox
 			if(scope.showSkybox){
 				skybox.camera.rotation.copy(scope.camera.rotation);
@@ -1523,6 +1712,7 @@ Potree.Viewer = function(domElement, args){
 				
 				var bbWorld = Potree.utils.computeTransformedBoundingBox(pointcloud.boundingBox, pointcloud.matrixWorld);
 				
+				pointcloud.material.useEDL = false;
 				pointcloud.material.size = scope.pointSize;
 				pointcloud.material.minSize = scope.minPointSize;
 				pointcloud.material.maxSize = scope.maxPointSize;
@@ -1536,7 +1726,10 @@ Potree.Viewer = function(domElement, args){
 			
 			// render scene
 			scope.renderer.render(scope.scene, scope.camera);
+			
+			//var queryPC = Potree.startQuery("PointCloud", viewer.renderer.getContext());
 			scope.renderer.render(scope.scenePointCloud, scope.camera);
+			//Potree.endQuery(queryPC, viewer.renderer.getContext());
 			
 			scope.profileTool.render();
 			scope.volumeTool.render();
@@ -1544,6 +1737,10 @@ Potree.Viewer = function(domElement, args){
 			scope.renderer.clearDepth();
 			scope.measuringTool.render();
 			scope.transformationTool.render();
+			
+			//Potree.endQuery(queryAll, viewer.renderer.getContext());
+			
+			//Potree.resolveQueries(viewer.renderer.getContext());
 		};
 	};
 	var potreeRenderer = new PotreeRenderer();
@@ -1645,8 +1842,8 @@ Potree.Viewer = function(domElement, args){
 			for(var i = 0; i < scope.pointclouds.length; i++){
 				var pointcloud = scope.pointclouds[i];
 			
-				depthMaterial.uniforms.octreeSize.value = pointcloud.pcoGeometry.boundingBox.size().x;
-				attributeMaterial.uniforms.octreeSize.value = pointcloud.pcoGeometry.boundingBox.size().x;
+				depthMaterial.uniforms.octreeSize.value = pointcloud.pcoGeometry.boundingBox.getSize().x;
+				attributeMaterial.uniforms.octreeSize.value = pointcloud.pcoGeometry.boundingBox.getSize().x;
 			
 				var originalMaterial = pointcloud.material;
 				
@@ -1656,7 +1853,7 @@ Potree.Viewer = function(domElement, args){
 					depthMaterial.screenWidth = width;
 					depthMaterial.screenHeight = height;
 					depthMaterial.uniforms.visibleNodes.value = pointcloud.material.visibleNodesTexture;
-					depthMaterial.uniforms.octreeSize.value = pointcloud.pcoGeometry.boundingBox.size().x;
+					depthMaterial.uniforms.octreeSize.value = pointcloud.pcoGeometry.boundingBox.getSize().x;
 					depthMaterial.fov = scope.camera.fov * (Math.PI / 180);
 					depthMaterial.spacing = pointcloud.pcoGeometry.spacing;
 					depthMaterial.near = scope.camera.near;
@@ -1664,7 +1861,7 @@ Potree.Viewer = function(domElement, args){
 					depthMaterial.heightMin = scope.heightMin;
 					depthMaterial.heightMax = scope.heightMax;
 					depthMaterial.uniforms.visibleNodes.value = pointcloud.material.visibleNodesTexture;
-					depthMaterial.uniforms.octreeSize.value = pointcloud.pcoGeometry.boundingBox.size().x;
+					depthMaterial.uniforms.octreeSize.value = pointcloud.pcoGeometry.boundingBox.getSize().x;
 					depthMaterial.bbSize = pointcloud.material.bbSize;
 					depthMaterial.treeType = pointcloud.material.treeType;
 					depthMaterial.uniforms.classificationLUT.value = pointcloud.material.uniforms.classificationLUT.value;
@@ -1683,7 +1880,7 @@ Potree.Viewer = function(domElement, args){
 					attributeMaterial.pointColorType = scope.pointColorType;
 					attributeMaterial.depthMap = rtDepth;
 					attributeMaterial.uniforms.visibleNodes.value = pointcloud.material.visibleNodesTexture;
-					attributeMaterial.uniforms.octreeSize.value = pointcloud.pcoGeometry.boundingBox.size().x;
+					attributeMaterial.uniforms.octreeSize.value = pointcloud.pcoGeometry.boundingBox.getSize().x;
 					attributeMaterial.fov = scope.camera.fov * (Math.PI / 180);
 					attributeMaterial.uniforms.blendHardness.value = pointcloud.material.uniforms.blendHardness.value;
 					attributeMaterial.uniforms.blendDepthSupplement.value = pointcloud.material.uniforms.blendDepthSupplement.value;
@@ -1728,10 +1925,12 @@ Potree.Viewer = function(domElement, args){
 
 
 
-	var edlRenderer = null;
+	this.edlRenderer = null;
 	var EDLRenderer = function(){
+		
+		_this = this;
 
-		var edlMaterial = null;
+		_this.edlMaterial = null;
 		var attributeMaterials = [];
 		
 		//var depthTexture = null;
@@ -1740,17 +1939,17 @@ Potree.Viewer = function(domElement, args){
 		var gl = scope.renderer.context;
 		
 		var initEDL = function(){
-			if(edlMaterial != null){
+			if(_this.edlMaterial != null){
 				return;
 			}
 			
 			//var depthTextureExt = gl.getExtension("WEBGL_depth_texture"); 
 			
-			edlMaterial = new Potree.EyeDomeLightingMaterial();
+			_this.edlMaterial = new Potree.EyeDomeLightingMaterial();
 			
 
 			rtColor = new THREE.WebGLRenderTarget( 1024, 1024, { 
-				minFilter: THREE.LinearFilter, 
+				minFilter: THREE.NearestFilter, 
 				magFilter: THREE.NearestFilter, 
 				format: THREE.RGBAFormat, 
 				type: THREE.FloatType,
@@ -1762,8 +1961,8 @@ Potree.Viewer = function(domElement, args){
 		};
 		
 		var resize = function(){
-			var width = scope.renderArea.clientWidth;
-			var height = scope.renderArea.clientHeight;
+			var width = this.scaleFactor * scope.renderArea.clientWidth;
+			var height = this.scaleFactor * scope.renderArea.clientHeight;
 			var aspect = width / height;
 			
 			var needsResize = (rtColor.width != width || rtColor.height != height);
@@ -1806,7 +2005,7 @@ Potree.Viewer = function(domElement, args){
 					var attributeMaterial = new Potree.PointCloudMaterial();
 						
 					attributeMaterial.pointShape = Potree.PointShape.CIRCLE;
-					attributeMaterial.interpolate = false;
+					attributeMaterial.interpolate = (scope.quality === "Interpolation");
 					attributeMaterial.weighted = false;
 					attributeMaterial.minSize = scope.minPointSize;
 					attributeMaterial.maxSize = scope.maxPointSize;
@@ -1816,7 +2015,7 @@ Potree.Viewer = function(domElement, args){
 				}
 				var attributeMaterial = attributeMaterials[i];
 			
-				var octreeSize = pointcloud.pcoGeometry.boundingBox.size().x;
+				var octreeSize = pointcloud.pcoGeometry.boundingBox.getSize().x;
 			
 				originalMaterials.push(pointcloud.material);
 				
@@ -1825,7 +2024,7 @@ Potree.Viewer = function(domElement, args){
 				{// COLOR & DEPTH PASS
 					attributeMaterial = pointcloud.material;
 					attributeMaterial.pointShape = Potree.PointShape.CIRCLE;
-					attributeMaterial.interpolate = false;
+					attributeMaterial.interpolate = (scope.quality === "Interpolation");
 					attributeMaterial.weighted = false;
 					attributeMaterial.minSize = scope.minPointSize;
 					attributeMaterial.maxSize = scope.maxPointSize;
@@ -1866,7 +2065,11 @@ Potree.Viewer = function(domElement, args){
 				
 			}
 			
+			//var queryPC = Potree.startQuery("PointCloud", viewer.renderer.getContext());
 			scope.renderer.render(scope.scenePointCloud, scope.camera, rtColor);
+			//Potree.endQuery(queryPC, viewer.renderer.getContext());
+			
+			
 			// bit of a hack here. The EDL pass will mess up the text of the volume tool
 			// so volume tool is rendered again afterwards
 			scope.volumeTool.render(rtColor);
@@ -1886,24 +2089,57 @@ Potree.Viewer = function(domElement, args){
 			}
 				
 			if(scope.pointclouds.length > 0){
-				{ // EDL OCCLUSION PASS
-					edlMaterial.uniforms.screenWidth.value = width;
-					edlMaterial.uniforms.screenHeight.value = height;
-					edlMaterial.uniforms.near.value = scope.camera.near;
-					edlMaterial.uniforms.far.value = scope.camera.far;
-					edlMaterial.uniforms.colorMap.value = rtColor;
-					edlMaterial.uniforms.expScale.value = scope.camera.far;
-					edlMaterial.uniforms.edlScale.value = scope.edlScale;
-					edlMaterial.uniforms.radius.value = scope.edlRadius;
-					edlMaterial.uniforms.opacity.value = scope.opacity;
-					edlMaterial.depthTest = true;
-					edlMaterial.depthWrite = true;
-					edlMaterial.transparent = true;
 				
-					Potree.utils.screenPass.render(scope.renderer, edlMaterial);
+				//var ext = viewer.renderer.getContext().getExtension("EXT_disjoint_timer_query");
+				//if(window.timerQuery == null){
+				//	window.timerQuery = ext.createQueryEXT();
+				//	ext.beginQueryEXT(ext.TIME_ELAPSED_EXT, window.timerQuery);
+				//}
+				
+				//var query = Potree.startQuery("EDL", viewer.renderer.getContext());
+				
+				{ // EDL OCCLUSION PASS
+					_this.edlMaterial.uniforms.screenWidth.value = width;
+					_this.edlMaterial.uniforms.screenHeight.value = height;
+					_this.edlMaterial.uniforms.colorMap.value = rtColor;
+					_this.edlMaterial.uniforms.edlStrength.value = scope.edlStrength;
+					_this.edlMaterial.uniforms.radius.value = scope.edlRadius;
+					_this.edlMaterial.uniforms.opacity.value = scope.opacity;
+					_this.edlMaterial.depthTest = true;
+					_this.edlMaterial.depthWrite = true;
+					_this.edlMaterial.transparent = true;
+				
+					Potree.utils.screenPass.render(scope.renderer, _this.edlMaterial);
 				}	
 				
 				scope.renderer.render(scope.scene, scope.camera);
+				
+				//Potree.endQuery(query, viewer.renderer.getContext());
+				//Potree.resolveQueries(viewer.renderer.getContext());
+				
+				//if(window.endedQuery == null){
+				//	ext.endQueryEXT(ext.TIME_ELAPSED_EXT);
+				//	window.endedQuery = window.timerQuery;
+				//}
+				//
+				//
+				//if(window.endedQuery != null){
+				//	var available = ext.getQueryObjectEXT(window.endedQuery, ext.QUERY_RESULT_AVAILABLE_EXT);
+				//	var disjoint = viewer.renderer.getContext().getParameter(ext.GPU_DISJOINT_EXT);
+				//	
+				//	if (available && !disjoint) {
+				//		// See how much time the rendering of the object took in nanoseconds.
+				//		var timeElapsed = ext.getQueryObjectEXT(window.endedQuery, ext.QUERY_RESULT_EXT);
+				//		var miliseconds = timeElapsed / (1000 * 1000);
+				//	
+				//		console.log(miliseconds + "ms");
+				//	  
+				//		window.endedQuery = null;
+				//		window.timerQuery = null;
+				//	}
+				//}
+
+				
 				
 				scope.profileTool.render();
 				scope.volumeTool.render();
@@ -1912,14 +2148,24 @@ Potree.Viewer = function(domElement, args){
 				scope.transformationTool.render();
 			}
 
+			
 
 		}
 	};
 
 	//var toggleMessage = 0;
+	
+	scope.stats = new Stats();
+	//scope.stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+	//document.body.appendChild( scope.stats.dom );
+	//scope.stats.dom.style.left = "100px";
+
 
 	function loop(timestamp) {
+		
 		requestAnimationFrame(loop);
+		
+		scope.stats.begin();
 		
 		//var start = new Date().getTime();
 		scope.update(clock.getDelta(), timestamp);
@@ -1932,10 +2178,10 @@ Potree.Viewer = function(domElement, args){
 		//}
 		
 		if(scope.useEDL && Potree.Features.SHADER_EDL.isSupported()){
-			if(!edlRenderer){
-				edlRenderer = new EDLRenderer();
+			if(!scope.edlRenderer){
+				scope.edlRenderer = new EDLRenderer();
 			}
-			edlRenderer.render(scope.renderer);
+			scope.edlRenderer.render(scope.renderer);
 		}else if(scope.quality === "Splats"){
 			if(!highQualityRenderer){
 				highQualityRenderer = new HighQualityRenderer();
@@ -1944,6 +2190,21 @@ Potree.Viewer = function(domElement, args){
 		}else{
 			potreeRenderer.render();
 		}
+		
+		//if(this.takeScreenshot == true){
+		//	this.takeScreenshot = false;
+		//	
+		//	var screenshot = scope.renderer.domElement.toDataURL();
+		//	
+		//	//document.body.appendChild(screenshot); 
+		//	var w = this.open();
+		//	w.document.write('<img src="'+screenshot+'"/>');
+		//}	
+		
+		scope.stats.end();
+
+		
+		Potree.framenumber++;
 	};
 
 	scope.initThree();
@@ -1954,18 +2215,27 @@ Potree.Viewer = function(domElement, args){
 	scope.setFOV(60);
 	scope.setOpacity(1);
 	scope.setEDLEnabled(false);
-	scope.setEDLRadius(2);
-	scope.setEDLStrength(1);
+	scope.setEDLRadius(1.4);
+	scope.setEDLStrength(1.0);
 	scope.setClipMode(Potree.ClipMode.HIGHLIGHT_INSIDE);
 	scope.setPointBudget(1*1000*1000);
 	scope.setShowBoundingBox(false);
 	scope.setFreeze(false);
 	scope.setNavigationMode("Orbit");
 	
+	scaleFactor = 1;
+	
 	scope.loadSettingsFromURL();
 
 	// start rendering!
 	requestAnimationFrame(loop);
+	
+	
+	//document.body.addEventListener('keydown', function(e) {
+	//	if(e.which === 75){
+	//		window.takeScreenshot = true;
+	//	}
+	//});
 };
 
 Potree.Viewer.prototype = Object.create( THREE.EventDispatcher.prototype );

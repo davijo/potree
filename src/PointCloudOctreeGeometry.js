@@ -37,6 +37,10 @@ Potree.PointCloudOctreeGeometryNode.prototype.isGeometryNode = function(){
 	return true;
 };
 
+Potree.PointCloudOctreeGeometryNode.prototype.getLevel = function(){
+	return this.level;
+};
+
 Potree.PointCloudOctreeGeometryNode.prototype.isTreeNode = function(){
 	return false;
 };
@@ -255,4 +259,5 @@ Potree.PointCloudOctreeGeometryNode.prototype.dispose = function(){
 	}
 };
 
-THREE.EventDispatcher.prototype.apply( Potree.PointCloudOctreeGeometryNode.prototype );
+//THREE.EventDispatcher.prototype.apply( Potree.PointCloudOctreeGeometryNode.prototype );
+Object.assign( Potree.PointCloudOctreeGeometryNode.prototype, THREE.EventDispatcher.prototype );

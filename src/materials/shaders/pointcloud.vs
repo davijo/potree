@@ -1,33 +1,28 @@
 
-// the following is an incomplete list of attributes, uniforms and defines
-// which are automatically added through the THREE.ShaderMaterial
+precision mediump float;
+precision mediump int;
 
-//attribute vec3 position;
-//attribute vec3 color;
-//attribute vec3 normal;
 
-//uniform mat4 modelMatrix;
-//uniform mat4 modelViewMatrix;
-//uniform mat4 projectionMatrix;
-//uniform mat4 viewMatrix;
-//uniform mat3 normalMatrix;
-//uniform vec3 cameraPosition;
 
-//#define MAX_DIR_LIGHTS 0
-//#define MAX_POINT_LIGHTS 1
-//#define MAX_SPOT_LIGHTS 0
-//#define MAX_HEMI_LIGHTS 0
-//#define MAX_SHADOWS 0
-//#define MAX_BONES 58
 
 #define max_clip_boxes 30
 
+attribute vec3 position;
+attribute vec3 color;
+attribute vec3 normal;
 attribute float intensity;
 attribute float classification;
 attribute float returnNumber;
 attribute float numberOfReturns;
 attribute float pointSourceID;
 attribute vec4 indices;
+
+uniform mat4 modelMatrix;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 viewMatrix;
+uniform mat3 normalMatrix;
+
 
 uniform float screenWidth;
 uniform float screenHeight;
@@ -54,6 +49,21 @@ uniform vec3 bbSize;
 uniform vec3 uColor;
 uniform float opacity;
 uniform float clipBoxCount;
+
+uniform vec2 intensityRange;
+uniform float intensityGamma;
+uniform float intensityContrast;
+uniform float intensityBrightness;
+uniform float rgbGamma;
+uniform float rgbContrast;
+uniform float rgbBrightness;
+uniform float transition;
+uniform float wRGB;
+uniform float wIntensity;
+uniform float wElevation;
+uniform float wClassification;
+uniform float wReturnNumber;
+uniform float wSourceID;
 
 
 uniform sampler2D visibleNodes;
@@ -210,6 +220,100 @@ float getPointSizeAttenuation(){
 
 #endif
 
+// formula adapted from: http://www.dfstudios.co.uk/articles/programming/image-programming-algorithms/image-processing-algorithms-part-5-contrast-adjustment/
+float getContrastFactor(float contrast){
+	return (1.0158730158730156 * (contrast + 1.0)) / (1.0158730158730156 - contrast);
+}
+
+vec3 getRGB(){
+	vec3 rgb = color;
+	
+	rgb = pow(rgb, vec3(rgbGamma));
+	rgb = rgb + rgbBrightness;
+	rgb = (rgb - 0.5) * getContrastFactor(rgbContrast) + 0.5;
+	rgb = clamp(rgb, 0.0, 1.0);
+	
+	return rgb;
+}
+
+float getIntensity(){
+	float w = (intensity - intensityRange.x) / (intensityRange.y - intensityRange.x);
+	w = pow(w, intensityGamma);
+	w = w + intensityBrightness;
+	w = (w - 0.5) * getContrastFactor(intensityContrast) + 0.5;
+	w = clamp(w, 0.0, 1.0);
+	
+	return w;
+}
+
+vec3 getElevation(){
+	vec4 world = modelMatrix * vec4( position, 1.0 );
+	float w = (world.y - heightMin) / (heightMax-heightMin);
+	vec3 cElevation = texture2D(gradient, vec2(w,1.0-w)).rgb;
+	
+	return cElevation;
+}
+
+vec4 getClassification(){
+	float c = mod(classification, 16.0);
+	vec2 uv = vec2(c / 255.0, 0.5);
+	vec4 classColor = texture2D(classificationLUT, uv);
+	
+	return classColor;
+}
+
+vec3 getReturnNumber(){
+	if(numberOfReturns == 1.0){
+		return vec3(1.0, 1.0, 0.0);
+	}else{
+		if(returnNumber == 1.0){
+			return vec3(1.0, 0.0, 0.0);
+		}else if(returnNumber == numberOfReturns){
+			return vec3(0.0, 0.0, 1.0);
+		}else{
+			return vec3(0.0, 1.0, 0.0);
+		}
+	}
+}
+
+vec3 getSourceID(){
+	float w = mod(pointSourceID, 10.0) / 10.0;
+	return texture2D(gradient, vec2(w,1.0 - w)).rgb;
+}
+
+vec3 getCompositeColor(){
+	vec3 c;
+	float w;
+
+	c += wRGB * getRGB();
+	w += wRGB;
+	
+	c += wIntensity * getIntensity() * vec3(1.0, 1.0, 1.0);
+	w += wIntensity;
+	
+	c += wElevation * getElevation();
+	w += wElevation;
+	
+	c += wReturnNumber * getReturnNumber();
+	w += wReturnNumber;
+	
+	c += wSourceID * getSourceID();
+	w += wSourceID;
+	
+	vec4 cl = wClassification * getClassification();
+    c += cl.a * cl.rgb;
+	w += wClassification * cl.a;
+
+	c = c / w;
+	
+	if(w == 0.0){
+		//c = color;
+		gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
+	}
+	
+	return c;
+}
+
 void main() {
 	vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
 	vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
@@ -217,37 +321,31 @@ void main() {
 	vWorldPosition = worldPosition.xyz;
 	gl_Position = projectionMatrix * mvPosition;
 	vOpacity = opacity;
-	vLinearDepth = -mvPosition.z;
+	vLinearDepth = gl_Position.w;
+	vLogDepth = log2(gl_Position.w);
 	vNormal = normalize(normalMatrix * normal);
-	
-	#if defined(use_edl)
-		vLogDepth = log2(gl_Position.w + 1.0) / log2(far + 1.0);
-	#endif
-	
-	//#if defined(use_logarithmic_depth_buffer)
-	//	float logarithmicZ = (2.0 * log2(gl_Position.w + 1.0) / log2(far + 1.0) - 1.0) * gl_Position.w;
-	//	gl_Position.z = logarithmicZ;
-	//#endif
 
 	// ---------------------
 	// POINT COLOR
 	// ---------------------
+	vec4 cl = getClassification(); 
 	
 	#ifdef color_type_rgb
-		vColor = color;
+		vColor = getRGB();
 	#elif defined color_type_height
-		vec4 world = modelMatrix * vec4( position, 1.0 );
-		float w = (world.y - heightMin) / (heightMax-heightMin);
-		vColor = texture2D(gradient, vec2(w,1.0-w)).rgb;
+		vColor = getElevation();
+	#elif defined color_type_rgb_height
+		vec3 cHeight = getElevation();
+		vColor = (1.0 - transition) * getRGB() + transition * cHeight;
 	#elif defined color_type_depth
 		float linearDepth = -mvPosition.z ;
 		float expDepth = (gl_Position.z / gl_Position.w) * 0.5 + 0.5;
 		vColor = vec3(linearDepth, expDepth, 0.0);
 	#elif defined color_type_intensity
-		float w = (intensity - intensityMin) / (intensityMax - intensityMin);
+		float w = getIntensity();
 		vColor = vec3(w, w, w);
 	#elif defined color_type_intensity_gradient
-		float w = (intensity - intensityMin) / intensityMax;
+		float w = getIntensity();
 		vColor = texture2D(gradient, vec2(w,1.0-w)).rgb;
 	#elif defined color_type_color
 		vColor = uColor;
@@ -258,53 +356,35 @@ void main() {
 	#elif defined color_type_point_index
 		vColor = indices.rgb;
 	#elif defined color_type_classification
-		float c = mod(classification, 16.0);
-		vec2 uv = vec2(c / 255.0, 0.5);
-		vec4 classColor = texture2D(classificationLUT, uv);
-		vColor = classColor.rgb;
+		vColor = cl.rgb;
 	#elif defined color_type_return_number
-		if(numberOfReturns == 1.0){
-			vColor = vec3(1.0, 1.0, 0.0);
-		}else{
-			if(returnNumber == 1.0){
-				vColor = vec3(1.0, 0.0, 0.0);
-			}else if(returnNumber == numberOfReturns){
-				vColor = vec3(0.0, 0.0, 1.0);
-			}else{
-				vColor = vec3(0.0, 1.0, 0.0);
-			}
-		}
+		vColor = getReturnNumber();
 	#elif defined color_type_source
-		float w = mod(pointSourceID, 10.0) / 10.0;
-		vColor = texture2D(gradient, vec2(w,1.0 - w)).rgb;
+		vColor = getSourceID();
 	#elif defined color_type_normal
 		vColor = (modelMatrix * vec4(normal, 0.0)).xyz;
 	#elif defined color_type_phong
 		vColor = color;
+	#elif defined color_type_composite
+		vColor = getCompositeColor();
 	#endif
 	
-	{
-		// TODO might want to combine with the define block above to avoid reading same LUT two times
-		float c = mod(classification, 16.0);
-		vec2 uv = vec2(c / 255.0, 0.5);
-		
-		if(texture2D(classificationLUT, uv).a == 0.0){
+	#if !defined color_type_composite
+		if(cl.a == 0.0){
 			gl_Position = vec4(100.0, 100.0, 100.0, 0.0);
+			
+			return;
 		}
-	}
-	
-	//if(vNormal.z < 0.0){
-	//	gl_Position = vec4(1000.0, 1000.0, 1000.0, 1.0);
-	//}
+	#endif
 	
 	// ---------------------
 	// POINT SIZE
 	// ---------------------
 	float pointSize = 1.0;
 	
-	float projFactor = 1.0 / tan(fov / 2.0);
-	projFactor /= vViewPosition.z;
-	projFactor *= screenHeight / 2.0;
+	float slope = tan(fov / 2.0);
+	float projFactor =  0.5 * screenHeight / (slope * vViewPosition.z);
+	
 	float r = spacing * 1.5;
 	vRadius = r;
 	#if defined fixed_point_size
@@ -352,19 +432,6 @@ void main() {
 			#if defined clip_highlight_inside
 			vColor.r += 0.5;
 			#endif
-			
-			//vec3 cp = clipBoxPositions[0];
-			//vec3 diff = vWorldPosition - cp;
-			//vec3 dir = normalize(diff);
-			//dir.z = 0.0;
-			//dir = normalize(dir);
-			//
-			//vec4 worldPosition = modelMatrix * vec4( position + dir * 20.0, 1.0 );
-			//vec4 mvPosition = modelViewMatrix * vec4( position + dir * 20.0, 1.0 );
-			//vViewPosition = -mvPosition.xyz;
-			//vWorldPosition = worldPosition.xyz;
-			//gl_Position = projectionMatrix * mvPosition;
-			
 		}
 	
 	#endif

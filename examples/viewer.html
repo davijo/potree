@@ -9,12 +9,20 @@
 
 	<link rel="stylesheet" type="text/css" href="../build/potree/potree.css">
 	<link rel="stylesheet" type="text/css" href="../libs/jquery-ui-1.11.4/jquery-ui.css">
+	<!--<link rel="stylesheet" type="text/css" href="../libs/jquery.scrollbar/jquery.scrollbar.css">-->
+	<link rel="stylesheet" type="text/css" href="../libs/perfect-scrollbar/css/perfect-scrollbar.css">
 	<link rel="stylesheet" href="../libs/openlayers3/ol.css" type="text/css">
   </head>
 
   <body>
   
-	<script src="../libs/jquery-2.1.4/jquery-2.1.4.min.js"></script>
+	<!--<script src="../libs/jquery-2.1.4/jquery-2.1.4.min.js"></script>-->
+	
+	<script src="https://code.jquery.com/jquery-2.2.4.js" integrity="sha256-iT6Q9iMJYuQiMWNd9lDyBUStIq/8PuOW33aOqmvFpqI=" crossorigin="anonymous"></script>
+	
+	<!--<script src="../libs/other/webgl-debug.js"></script>-->
+	<!--<script src="../libs/jquery.scrollbar/jquery.scrollbar.js"></script>-->
+	<script src="../libs/perfect-scrollbar/js/perfect-scrollbar.jquery.js"></script>
 	<script src="../libs/jquery-ui-1.11.4/jquery-ui.min.js"></script>
 	<script src="../libs/three.js/build/three.js"></script>
 	<script src="../libs/other/stats.min.js"></script>
@@ -95,38 +103,40 @@
 			console.log("a point cloud has been loaded");
 		}; 
 	
-		viewer = new Potree.Viewer(document.getElementById("potree_render_area"), {
+		window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"), {
 			"onPointCloudLoaded": onPointCloudLoaded
 		});
 		
-		viewer.setEDLEnabled(false);
-		viewer.setPointSize(3);
+		viewer.setEDLEnabled(true);
+		viewer.setPointSize(1);
 		viewer.setMaterial("RGB");
 		viewer.setFOV(60);
-		viewer.setPointSizing("Fixed");
+		viewer.setPointSizing("Adaptive");
 		viewer.setQuality("Squares");
-		viewer.setPointBudget(1*1000*1000);
+		viewer.setPointBudget(2*1000*1000);
 		viewer.loadSettingsFromURL();
-		//viewer.setOpacity(0.03);
-		//viewer.setMinNodeSize(100);
 		
-		viewer.setDescription("Potree 1.4RC. Use this for testing purposes only! Check <a href='https://twitter.com/m_schuetz' target='_blank'>here</a> for new updates.<br>"
-			+ "Report issues on the <a href='https://github.com/potree/potree' target='_blank'>github repository</a> or <a href='mailto:mschuetz@potree.org' target='_blank'>mschuetz@potree.org</a><br>"
-			+ "Point cloud courtesy of <a href='http://sigeom.ch/' target='_blank'>sigeom sa</a>"
-			
-		);
-
-		viewer.addPointCloud("../pointclouds/vol_total/cloud.js");
-		//viewer.addPointCloud("../../../../../temp/ca13/resources/pointclouds/ca13/cloud.js");
-		//viewer.addPointCloud("http://5.9.65.151/mschuetz/potree/resources/pointclouds/riegl/retz/cloud.js");
-		//viewer.addPointCloud("http://wocket.iddl.vt.edu/WWI_cave_1/resources/pointclouds/WWI_cave_1/cloud.js");
-		//viewer.addPointCloud("http://www.cs.unc.edu/~isenburg/lastools/page7/resources/pointclouds/lidar/cloud.js");
-		//viewer.addPointCloud("http://5.9.65.151/mschuetz/potree/resources/pointclouds/AHN3/cloud.js");
-		//viewer.addPointCloud("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_1.4/cloud.js");
-		//viewer.addPointCloud("http://ahn2.pointclouds.nl//potree_data/tile_all/cloud.js");
+		viewer.setIntensityRange(0, 300);
+		viewer.setWeightClassification(1);
+		
+		viewer.setDescription("");
+		
+		//viewer.addPointCloud("../pointclouds/vol_total/cloud.js");
+		//viewer.addPointCloud("../pointclouds/lion_takanawa/cloud.js", function(e){
+		//	viewer.camera.position.set(3.65, 5.78, 4.97);
+		//	e.pointcloud.setName("Lion");
+		//});
+		viewer.addPointCloud("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_1.4/cloud.js", function(e){
+			e.pointcloud.setName("CA13");
+			viewer.camera.position.set(4032.572341682513, 362.07649293733874, 14037.010422605732);
+			viewer.controls.target = new THREE.Vector3(4487.972917878704, 30.06198819344912, 13877.62507638037);
+		});
+		
 		
 		viewer.loadGUI();
 		
 	</script>
+	
+	
   </body>
 </html>

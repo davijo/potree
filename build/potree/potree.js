@@ -1581,19 +1581,19 @@ Potree.PointCloudMaterial = function (parameters) {
 Potree.PointCloudMaterial.prototype = new THREE.RawShaderMaterial();
 
 //Potree.PointCloudMaterial.prototype.copyFrom = function(source){
-//	
+//
 //	for(let uniform of source.uniforms){
 //		this.uniforms.value = source.uniforms.value;
 //	}
-//	
+//
 //	this.pointSizeType = source.pointSizeType;
-//	
+//
 //};
 //
 //Potree.PointCloudMaterial.prototype.clone = function(){
 //	let material = new Potree.PointCloudMaterial();
 //	material.copyFrom(this);
-//	
+//
 //	return material;
 //};
 
@@ -2030,7 +2030,7 @@ Potree.PointCloudMaterial.generateGradientTexture = function (gradient) {
 	var size = 64;
 
 	// create canvas
-	canvas = document.createElement('canvas');
+	var canvas = document.createElement('canvas');
 	canvas.width = size;
 	canvas.height = size;
 
@@ -2052,7 +2052,7 @@ Potree.PointCloudMaterial.generateGradientTexture = function (gradient) {
 
 	var texture = new THREE.Texture(canvas);
 	texture.needsUpdate = true;
-	textureImage = texture.image;
+	//textureImage = texture.image;
 
 	return texture;
 };

@@ -1,41 +1,69 @@
-Potree.Annotation = function(viewer, args){
+Potree.Annotation = function(scene, args){
 	var scope = this;
 	
 	Potree.Annotation.counter++;
 	
-	this.viewer = viewer;
+	this.scene = scene;
 	this.ordinal = args.title || Potree.Annotation.counter;
 	this.title = args.title || "No Title";
 	this.description = args.description || "";
-	this.scene = args.scene || null;
 	this.position = args.position || new THREE.Vector3(0,0,0);
 	this.cameraPosition = args.cameraPosition;
 	this.cameraTarget = args.cameraTarget || this.position;
 	this.view = args.view || null;
 	this.keepOpen = false;
 	this.descriptionVisible = false;
+	this.actions = args.actions || null;
+	this.appearance = args.appearance || null;
 	
 	this.domElement = document.createElement("div");
 	this.domElement.style.position = "absolute";
 	this.domElement.style.opacity = "0.5";
-	//this.domElement.style.border = "1px solid red";
 	this.domElement.style.padding = "10px";
 	this.domElement.style.whiteSpace = "nowrap";
 	this.domElement.className = "annotation";
 	
-	this.elOrdinal = document.createElement("div");
-	this.elOrdinal.style.position = "relative";
-	//this.elOrdinal.style.width = "1.5em";
-	//this.elOrdinal.style.height = "1.5em";
-	this.elOrdinal.style.color = "white";
-	this.elOrdinal.style.backgroundColor = "black";
-	this.elOrdinal.style.borderRadius = "1.5em";
-	this.elOrdinal.style.fontSize = "1em";
-	this.elOrdinal.style.opacity = "1";
-	this.elOrdinal.style.margin = "auto";
-	this.elOrdinal.style.zIndex = "100";
-	this.elOrdinal.style.width = "fit-content";
-	this.domElement.appendChild(this.elOrdinal);
+	if(this.appearance !== null){
+		this.elOrdinal = document.createElement("div");
+		this.elOrdinal.style.position = "relative";
+		this.elOrdinal.style.zIndex = "100";
+		this.elOrdinal.style.width = "fit-content";
+		
+		this.elOrdinal.innerHTML = this.appearance;
+		this.domElement.appendChild(this.elOrdinal);
+	}else{
+		this.elOrdinal = document.createElement("div");
+		this.elOrdinal.style.position = "relative";
+		this.elOrdinal.style.color = "white";
+		this.elOrdinal.style.backgroundColor = "black";
+		this.elOrdinal.style.borderRadius = "1.5em";
+		this.elOrdinal.style.fontSize = "1em";
+		this.elOrdinal.style.opacity = "1";
+		this.elOrdinal.style.margin = "auto";
+		this.elOrdinal.style.zIndex = "100";
+		this.elOrdinal.style.width = "fit-content";
+		this.domElement.appendChild(this.elOrdinal);
+		
+		this.elOrdinalText = document.createElement("span");
+		this.elOrdinalText.style.display = "inline-block";
+		this.elOrdinalText.style.verticalAlign = "middle";
+		this.elOrdinalText.style.lineHeight = "1.5em";
+		this.elOrdinalText.style.textAlign = "center";
+		this.elOrdinalText.style.fontFamily = "Arial";
+		this.elOrdinalText.style.fontWeight = "bold";
+		this.elOrdinalText.style.padding = "1px 8px 0px 8px";
+		this.elOrdinalText.style.cursor = "default";
+		this.elOrdinalText.innerHTML = this.ordinal;
+		this.elOrdinalText.userSelect = "none";
+		this.elOrdinal.appendChild(this.elOrdinalText);
+		
+		this.elOrdinal.onmouseenter = function(){};
+		this.elOrdinal.onmouseleave = function(){};
+		this.elOrdinalText.onclick = function(){
+			scope.moveHere(scope.scene.camera);
+			scope.dispatchEvent({type: "click", target: scope});
+		};
+	}
 	
 	this.domDescription = document.createElement("div");
 	this.domDescription.style.position = "relative";
@@ -46,38 +74,34 @@ Potree.Annotation = function(viewer, args){
 	this.domDescription.style.borderRadius = "4px";
 	this.domDescription.style.display = "none";
 	this.domDescription.className = "annotation";
-	//this.domDescription.style.top = "20";
-	//this.domDescription.style.left = "-100";
 	this.domElement.appendChild(this.domDescription);
 	
-	this.elOrdinal.onmouseenter = function(){
+	if(this.actions != null){
+		this.elOrdinalText.style.padding = "1px 3px 0px 8px";
 		
-	};
-	this.elOrdinal.onmouseleave = function(){
-
-	};
-	this.elOrdinal.onclick = function(){
-		scope.moveHere(scope.viewer.camera);
-		scope.dispatchEvent({type: "click", target: scope});
-		if(scope.viewer.geoControls){
-			scope.viewer.geoControls.setTrack(null);
+		for(let action of this.actions){
+			let elButton = document.createElement("img");
+		
+			elButton.src = Potree.scriptPath + action.icon;
+			elButton.style.width = "24px";
+			elButton.style.height = "24px";
+			elButton.style.filter = "invert(1)";
+			elButton.style.display = "inline-block";
+			elButton.style.verticalAlign = "middle";
+			elButton.style.lineHeight = "1.5em";
+			elButton.style.textAlign = "center";
+			elButton.style.fontFamily = "Arial";
+			elButton.style.fontWeight = "bold";
+			elButton.style.padding = "1px 3px 0px 3px";
+			elButton.style.cursor = "default";	
+			
+			this.elOrdinal.appendChild(elButton);
+			
+			elButton.onclick = function(){
+				action.onclick();
+			};
 		}
-	};
-
-	
-	this.elOrdinalText = document.createElement("span");
-	this.elOrdinalText.style.display = "inline-block";
-	this.elOrdinalText.style.verticalAlign = "middle";
-	this.elOrdinalText.style.lineHeight = "1.5em";
-	this.elOrdinalText.style.textAlign = "center";
-	//this.elOrdinalText.style.width = "100%";
-	this.elOrdinalText.style.fontFamily = "Arial";
-	this.elOrdinalText.style.fontWeight = "bold";
-	this.elOrdinalText.style.padding = "1px 8px 0px 8px";
-	this.elOrdinalText.style.cursor = "default";
-	this.elOrdinalText.innerHTML = this.ordinal;
-	this.elOrdinalText.userSelect = "none";
-	this.elOrdinal.appendChild(this.elOrdinalText);
+	}
 	
 	this.elDescriptionText = document.createElement("span");
 	this.elDescriptionText.style.color = "#ffffff";
@@ -104,7 +128,7 @@ Potree.Annotation = function(viewer, args){
 		var easing = TWEEN.Easing.Quartic.Out;
 
 		// animate camera position
-		var tween = new TWEEN.Tween(camera.position).to(scope.cameraPosition, animationDuration);
+		var tween = new TWEEN.Tween(scope.scene.view.position).to(scope.cameraPosition, animationDuration);
 		tween.easing(easing);
 		tween.start();
 		
@@ -117,12 +141,12 @@ Potree.Annotation = function(viewer, args){
 		var tween = new TWEEN.Tween(target).to(scope.cameraTarget, animationDuration);
 		tween.easing(easing);
 		tween.onUpdate(function(){
-			camera.lookAt(target);
-			scope.viewer.orbitControls.target.copy(target);
+			//camera.lookAt(target);
+			scope.scene.view.target.copy(target);
 		});
 		tween.onComplete(function(){
-			camera.lookAt(target);
-			scope.viewer.orbitControls.target.copy(target);
+			//camera.lookAt(target);
+			scope.scene.view.target.copy(target);
 			scope.dispatchEvent({type: "focusing_finished", target: scope});
 		});
 

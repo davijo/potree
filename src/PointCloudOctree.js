@@ -11,13 +11,13 @@ Potree.ProfileData = function(profile){
 		var start = profile.points[i];
 		var end = profile.points[i+1];
 		
-		var startGround = new THREE.Vector3(start.x, 0, start.z);
-		var endGround = new THREE.Vector3(end.x, 0, end.z);
+		var startGround = new THREE.Vector3(start.x, start.y, 0);
+		var endGround = new THREE.Vector3(end.x, end.y, 0);
 		
 		var center = new THREE.Vector3().addVectors(endGround, startGround).multiplyScalar(0.5);
 		var length = startGround.distanceTo(endGround);
 		var side = new THREE.Vector3().subVectors(endGround, startGround).normalize();
-		var up = new THREE.Vector3(0, 1, 0);
+		var up = new THREE.Vector3(0, 0, 1);
 		var forward = new THREE.Vector3().crossVectors(side, up).normalize();
 		var N = forward;
 		var cutPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(N, startGround);
@@ -30,17 +30,17 @@ Potree.ProfileData = function(profile){
 			
 			var xAxis = new THREE.Vector3(1,0,0);
 			var dir = new THREE.Vector3().subVectors(end, start);
-			dir.y = 0;
+			dir.z = 0;
 			dir.normalize();
 			var alpha = Math.acos(xAxis.dot(dir));
-			if(dir.z > 0){
+			if(dir.y > 0){
 				alpha = -alpha;
 			}
 			
 			
 			return function(position){
-				var toOrigin = new THREE.Matrix4().makeTranslation(-start.x, 0, -start.z);
-				var alignWithX = new THREE.Matrix4().makeRotationY(-alpha);
+				var toOrigin = new THREE.Matrix4().makeTranslation(-start.x, -start.y, 0);
+				var alignWithX = new THREE.Matrix4().makeRotationZ(-alpha);
 				var applyMileage = new THREE.Matrix4().makeTranslation(mileage.x, 0, 0);
 
 				var pos = position.clone();
@@ -66,13 +66,13 @@ Potree.ProfileData = function(profile){
 		this.segments.push(segment);
 		
 		mileage.x += length;
-		mileage.y += end.y - start.y;
+		mileage.z += end.z - start.z;
 	}
 	
 	this.projectedBoundingBox.min.x = 0;
-	this.projectedBoundingBox.min.y = Number.POSITIVE_INFINITY;
+	this.projectedBoundingBox.min.z = Number.POSITIVE_INFINITY;
 	this.projectedBoundingBox.max.x = mileage.x;
-	this.projectedBoundingBox.max.y = Number.NEGATIVE_INFINITY;
+	this.projectedBoundingBox.max.z = Number.NEGATIVE_INFINITY;
 	
 	this.size = function(){
 		var size = 0;
@@ -1099,8 +1099,8 @@ Potree.PointCloudOctree.prototype.pick = function(renderer, camera, ray, params)
 	let uniforms = glstate.uniforms;
 	gl.useProgram(program);
 		
-	gl.uniformMatrix4fv(uniforms["projectionMatrix"], false, camera.projectionMatrix.elements);
-	gl.uniformMatrix4fv(uniforms["viewMatrix"], false, camera.matrixWorldInverse.elements);
+	gl.uniformMatrix4fv(uniforms["projectionMatrix"], false, new Float32Array(camera.projectionMatrix.elements));
+	gl.uniformMatrix4fv(uniforms["viewMatrix"], false, new Float32Array(camera.matrixWorldInverse.elements));
 	
 	{
 		if(glstate.textures.visibleNodes === undefined){
@@ -1160,8 +1160,8 @@ Potree.PointCloudOctree.prototype.pick = function(renderer, camera, ray, params)
 		pickMaterial.pcIndex = i + 1;
 		
 		let modelView = new THREE.Matrix4().multiplyMatrices(camera.matrixWorldInverse, object.matrixWorld);
-		gl.uniformMatrix4fv(uniforms["modelMatrix"], false, object.matrixWorld.elements);
-		gl.uniformMatrix4fv(uniforms["modelViewMatrix"], false, modelView.elements);
+		gl.uniformMatrix4fv(uniforms["modelMatrix"], false, new Float32Array(object.matrixWorld.elements));
+		gl.uniformMatrix4fv(uniforms["modelViewMatrix"], false, new Float32Array(modelView.elements));
 		
 		let apPosition = gl.getAttribLocation(program, "position");
 		let apNormal = gl.getAttribLocation(program, "normal");

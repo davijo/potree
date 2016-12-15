@@ -11,8 +11,7 @@ Potree.Viewer.Profile = function(viewer, element){
 	this.margin = {top: 0, right: 0, bottom: 20, left: 40};
 	this.maximized = false;
 	this.threshold = 20*1000;
-	
-	
+
 	$('#closeProfileContainer').click(function(){
 		scope.hide();
 		scope.enabled = false;
@@ -151,14 +150,12 @@ Potree.Viewer.Profile = function(viewer, element){
 			// user data
 			// point source id
 			view.setUint16(boffset + 18, point.pointSourceID);
-			
 			view.setUint16(boffset + 20, (point.color[0] * 255), true);
 			view.setUint16(boffset + 22, (point.color[1] * 255), true);
 			view.setUint16(boffset + 24, (point.color[2] * 255), true);
 			
 			boffset += 28;
 		}
-		
 		
 		// max x 179 8
 		view.setFloat64(179, boundingBox.max.x, true);
@@ -191,30 +188,20 @@ Potree.Viewer.Profile = function(viewer, element){
 		var data = [];
 		var distance = 0;
 		var totalDistance = 0;
-		var minX = Math.max();
-		var minY = Math.max();
-		var minZ = Math.max();
-		var maxX = 0;
-		var maxY = 0;
-		var maxZ = 0;
+		let min = new THREE.Vector3(Math.max());
+		let max = new THREE.Vector3(0);
 
 		// Get the same color map as Three
 		var hr = scope.viewer.getHeightRange();
-		var hrGeo = {
-			min: scope.viewer.toGeo(new THREE.Vector3(0, hr.min, 0)).z,
-			max: scope.viewer.toGeo(new THREE.Vector3(0, hr.max, 0)).z,
-		};
 		
-		//var minRange = scope.viewer.toGeo(new THREE.Vector3(0, args.heightMin, 0));
-		//var maxRange = scope.viewer.toGeo(new THREE.Vector3(0, args.heightMax, 0));
-		var heightRange = hrGeo.max - hrGeo.min;
+		var heightRange = hr.max - hr.min;
 		var colorRange = [];
 		var colorDomain = [];
 		
 		// Read the altitude gradient used in 3D scene
-		var gradient = viewer.pointclouds[0].material.gradient;
+		var gradient = viewer.scene.pointclouds[0].material.gradient;
 		for (var c = 0; c < gradient.length; c++){
-			colorDomain.push(hrGeo.min + heightRange * gradient[c][0]);
+			colorDomain.push(hr.min + heightRange * gradient[c][0]);
 			colorRange.push('#' + gradient[c][1].getHexString());
 		}
 		
@@ -227,51 +214,36 @@ Potree.Viewer.Profile = function(viewer, element){
 		// Iterate the profile's segments
 		for(var i = 0; i < segments.length; i++){
 			var segment = segments[i];
-			var segStartGeo = scope.viewer.toGeo(segment.start);
-			var segEndGeo = scope.viewer.toGeo(segment.end);
-			var xOA = segEndGeo.x - segStartGeo.x;
-			var yOA = segEndGeo.y - segStartGeo.y;
-			var segmentLength = Math.sqrt(xOA * xOA + yOA * yOA);
+			var sv = new THREE.Vector3().subVectors(segment.end, segment.start).setZ(0)
+			var segmentLength = sv.length();
 			var points = segment.points;
 
 			// Iterate the segments' points
 			for(var j = 0; j < points.numPoints; j++){
-				var p = scope.viewer.toGeo(points.position[j]);
-				// get min/max values            
-				if (p.x < minX) { minX = p.x;}
-
-				if (p.y < minY) { minY = p.y;}
-
-				if (p.z < minZ) { minZ = p.z;}
-
-				if (p.x > maxX) { maxX = p.x;}
-
-				if (p.y < maxY) { maxY = p.y;}
-
-				if (p.z < maxZ) { maxZ = p.z;}
-
-				var xOB = p.x - segStartGeo.x;
-				var yOB = p.y - segStartGeo.y;
-				var hypo = Math.sqrt(xOB * xOB + yOB * yOB);
-				var cosAlpha = (xOA * xOB + yOA * yOB)/(Math.sqrt(xOA * xOA + yOA * yOA) * hypo);
-				var alpha = Math.acos(cosAlpha);
-				var dist = hypo * cosAlpha + totalDistance;
-				if (!isNaN(dist)) {
-					var d =	{ };
-					d.distance = dist;
-					d.x = p.x;
-					d.y = p.y;
-					d.z = p.z;
-					d.altitude = p.z;
-					d.heightColor = colorRamp(p.z);
-					d.color = points.color ? points.color[j] : [0, 0, 0];
-					d.intensity = points.intensity ? points.intensity[j] : 0;
-					d.classification = points.classification ? points.classification[j] : 0;
-					d.returnNumber = points.returnNumber ? points.returnNumber[j] : 0;
-					d.numberOfReturns = points.numberOfReturns ? points.numberOfReturns[j] : 0;
-					d.pointSourceID = points.pointSourceID ? points.pointSourceID[j] : 0;
-					data.push(d);
-				}
+				var p = points.position[j];
+				var pl = new THREE.Vector3().subVectors(p, segment.start).setZ(0);
+				
+				min.min(p);
+				max.max(p);
+				
+				let distance = totalDistance + pl.length();
+				
+				var d = {
+					distance: distance,
+					x: p.x,
+					y: p.y,
+					z: p.z,
+					altitude: p.z,
+					heightColor: colorRamp(p.z),
+					color: points.color ? points.color[j] : [0, 0, 0],
+					intensity: points.intensity ? points.intensity[j] : 0,
+					classification: points.classification ? points.classification[j] : 0,
+					returnNumber: points.returnNumber ? points.returnNumber[j] : 0,
+					numberOfReturns: points.numberOfReturns ? points.numberOfReturns[j] : 0,
+					pointSourceID: points.pointSourceID ? points.pointSourceID[j] : 0,
+				};
+				
+				data.push(d);
 			}
 
 			// Increment distance from the profile start point
@@ -280,12 +252,12 @@ Potree.Viewer.Profile = function(viewer, element){
 
 		var output = {
 			'data': data,
-			'minX': minX,
-			'minY': minY,
-			'minZ': minZ,
-			'maxX': maxX,
-			'maxY': maxY,
-			'maxZ': maxZ
+			'minX': min.x,
+			'minY': min.y,
+			'minZ': min.z,
+			'maxX': max.x,
+			'maxY': max.y,
+			'maxZ': max.z
 		};
 
 		return output;
@@ -381,7 +353,7 @@ Potree.Viewer.Profile = function(viewer, element){
 			//return d.intensity;
 			return 'rgb(' + d.intensity + '%,' + d.intensity + '%,' + d.intensity + '%)';
 		} else if (material === Potree.PointColorType.CLASSIFICATION) {
-			var classif = scope.viewer.pointclouds[0].material.classification;
+			var classif = scope.viewer.scene.pointclouds[0].material.classification;
 			if (typeof classif[d.classification] != 'undefined'){
 				var color = 'rgb(' + classif[d.classification].x * 100 + '%,';
 				color += classif[d.classification].y * 100 + '%,';
@@ -429,12 +401,38 @@ Potree.Viewer.Profile = function(viewer, element){
 		}else{
 			return;
 		}
-		if(scope.viewer.pointclouds.length === 0){
+		if(scope.viewer.scene.pointclouds.length === 0){
 			return;
+		}
+		
+		if(scope.currentProfile){
+			scope.currentProfile.dispatcher.removeEventListener("marker_moved", drawOnChange);
+			scope.currentProfile.dispatcher.removeEventListener("width_changed", drawOnChange);
+			viewer.dispatcher.removeEventListener("material_changed", drawOnChange);
+			//viewer.addEventListener("material_changed", function(){
+			//	drawOnChange({profile: scope.currentProfile});
+			//});
+			
+			
+			//viewer.profileTool.addEventListener("marker_moved", drawOnChange);
+			//viewer.profileTool.addEventListener("width_changed", drawOnChange);
+			//viewer.addEventListener("material_changed", function(){
+			//	drawOnChange({profile: scope.currentProfile});
+			//});
+            //
+			//viewer.addEventListener("height_range_changed", function(){
+			//	drawOnChange({profile: scope.currentProfile});
+			//});
 		}
 		
 		
 		scope.currentProfile = profile;
+		
+		{
+			scope.currentProfile.dispatcher.addEventListener("marker_moved", drawOnChange);
+			scope.currentProfile.dispatcher.addEventListener("width_changed", drawOnChange);
+			viewer.dispatcher.addEventListener("material_changed", drawOnChange);
+		}
 
 		if(!scope.__drawData){
 			scope.__drawData = {};
@@ -456,12 +454,11 @@ Potree.Viewer.Profile = function(viewer, element){
 			var mileage = 0;
 			for(var i = 0; i < profile.points.length; i++){
 				var point = profile.points[i];
-				var pointGeo = scope.viewer.toGeo(point);
 				
 				if(i > 0){
-					var previousGeo = scope.viewer.toGeo(profile.points[i-1]);
-					var dx = pointGeo.x - previousGeo.x;
-					var dy = pointGeo.y - previousGeo.y;
+					var previous = profile.points[i-1];
+					var dx = point.x - previous.x;
+					var dy = point.y - previous.y;
 					var distance = Math.sqrt(dx * dx + dy * dy);
 					mileage += distance;
 				}
@@ -645,8 +642,8 @@ Potree.Viewer.Profile = function(viewer, element){
 		};
 		
 		
-		for(var i = 0; i < scope.viewer.pointclouds.length; i++){
-			var pointcloud = scope.viewer.pointclouds[i];
+		for(var i = 0; i < scope.viewer.scene.pointclouds.length; i++){
+			var pointcloud = scope.viewer.scene.pointclouds[i];
 			
 			if(!pointcloud.visible){
 				continue;
@@ -705,37 +702,38 @@ Potree.Viewer.Profile = function(viewer, element){
 	};
 	
 	var drawOnChange = function(event){
-		if(event.profile === scope.currentProfile){
+		//if(event.profile === scope.currentProfile){
 			scope.redraw();
-		}
-	};
+		//}
+	}.bind(this);
 	
-	viewer.profileTool.addEventListener("marker_moved", drawOnChange);
-	viewer.profileTool.addEventListener("width_changed", drawOnChange);
-	viewer.addEventListener("material_changed", function(){
-		drawOnChange({profile: scope.currentProfile});
-	});
-	viewer.addEventListener("height_range_changed", function(){
-		drawOnChange({profile: scope.currentProfile});
-	});
+	//viewer.scene.dispatcher.addEventListener("marker_moved"))
+
+	//viewer.profileTool.addEventListener("marker_moved", drawOnChange);
+	//viewer.profileTool.addEventListener("width_changed", drawOnChange);
+	//viewer.addEventListener("material_changed", function(){
+	//	drawOnChange({profile: scope.currentProfile});
+	//});
+    //
+	//viewer.addEventListener("height_range_changed", function(){
+	//	drawOnChange({profile: scope.currentProfile});
+	//});
 	
 	var width = document.getElementById('profile_window').clientWidth;
 	var height = document.getElementById('profile_window').clientHeight;
 	function resizeLoop(){
 		requestAnimationFrame(resizeLoop);
-			
+
 		var newWidth = document.getElementById('profile_window').clientWidth;
 		var newHeight = document.getElementById('profile_window').clientHeight;
-		
+
 		if(newWidth !== width || newHeight !== height){
 			setTimeout(drawOnChange, 50, {profile: scope.currentProfile});
 		}
-		
+
 		width = newWidth;
 		height = newHeight;
 	};
 	requestAnimationFrame(resizeLoop);
-	
-	
-	
+
 };

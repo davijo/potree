@@ -437,8 +437,9 @@ function initAccordion(){
         }
     });
 	
-	$("#accordion").accordion({ active: 2});
-	$("#accordion").accordion({ active: 3});
+	//$("#accordion").accordion({ active: 2});
+	//$("#accordion").accordion({ active: 3});
+	//$("#accordion").accordion({ active: 4});
 }
 
 function initAppearance(){
@@ -626,6 +627,132 @@ function initNavigation(){
 	});
 	
 	$('#lblMoveSpeed')[0].innerHTML = viewer.getMoveSpeed().toFixed(1);
+}
+
+function initAnnotationDetails(){
+	
+	// annotation_details
+	let annotationPanel = $("#annotation_details");
+	
+	let trackAnnotation = (annotation) => {
+		let elLi = document.createElement("li");
+		let elItem = document.createElement("div");
+		let elMain = document.createElement("span");
+		let elLabel = document.createElement("span");
+		
+		elLi.appendChild(elItem);
+		elItem.append(elMain);
+		elMain.append(elLabel);
+		annotationPanel.append(elLi);
+		
+		elItem.classList.add("annotation-item");
+		
+		elMain.style.display = "flex";
+		elMain.classList.add("annotation-main");
+		
+		let elLabelText = document.createTextNode(annotation.ordinal);
+		elLabel.appendChild(elLabelText);
+		elLabel.classList.add("annotation-label");
+		
+		let actions = [];
+		{ // ACTIONS, INCLUDING GOTO LOCATION
+			if(annotation.hasView()){
+				let action = {
+					"icon": Potree.resourcePath + "/icons/target.svg",
+					"onclick": (e) => {annotation.moveHere(viewer.scene.camera)}
+				};
+				
+				actions.push(action);
+			}
+			
+			for(let action of annotation.actions){
+				actions.push(action);
+			}
+		}
+		
+		// FIRST ACTION
+		if(actions.length > 0){
+			let action = actions[0];
+			let elIcon = document.createElement("img");
+			elIcon.src = action.icon;
+			elIcon.classList.add("annotation-icon");
+			elMain.appendChild(elIcon);
+			elMain.onclick = (e) => {
+				action.onclick(e);
+			};
+			
+			elMain.onmouseover = (e) => {
+				elIcon.style.opacity = 1;
+			};
+			
+			elMain.onmouseout = (e) => {
+				elIcon.style.opacity = 0.5;
+			};
+			
+			actions.splice(0, 1);
+		}
+		
+		// REMAINING ACTIONS
+		for(let action of actions){
+			let elIcon = document.createElement("img");
+			elIcon.src = action.icon;
+			elIcon.classList.add("annotation-icon");
+			
+			elIcon.onmouseover = (e) => {
+				elIcon.style.opacity = 1;
+			};
+			
+			elIcon.onmouseout = (e) => {
+				elIcon.style.opacity = 0.5;
+			};
+			
+			elIcon.onclick = (e) => {
+				action.onclick(e);
+			};
+			
+			elItem.appendChild(elIcon);
+		}
+		
+		elItem.onmouseover = (e) => {
+			annotation.setHighlighted(true);
+			
+		};
+		elItem.onmouseout = (e) => {
+			annotation.setHighlighted(false);
+		};
+		
+		annotation.setHighlighted(false);
+	};
+	
+	let annotationAddedCallback = (e) => {
+		trackAnnotation(e.annotation);
+	};
+	
+	let setScene = (e) => {
+		
+		annotationPanel.empty();
+		
+		if(e.oldScene){
+			if(e.oldScene.dispatcher.hasEventListener("annotation_added", annotationAddedCallback)){
+				e.oldScene.dispatcher.removeEventListener("annotation_added", annotationAddedCallback);
+			}
+		}
+		
+		if(e.scene){
+			for(let annotation of e.scene.annotations){
+				trackAnnotation(annotation);
+			}
+			
+			e.scene.addEventListener("annotation_added", annotationAddedCallback);
+		}
+		
+	};
+	
+	setScene({
+		"scene": viewer.scene
+	});
+	
+	viewer.dispatcher.addEventListener("scene_changed", setScene);
 }
 
 function initMeasurementDetails(){
@@ -1121,6 +1248,7 @@ $(document).ready( function() {
 	initNavigation();
 	initMaterials();
 	initClassificationList();
+	initAnnotationDetails();
 	initMeasurementDetails();
 	initSceneList();
 	initSettings()

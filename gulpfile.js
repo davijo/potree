@@ -11,6 +11,9 @@ var through = require('through');
 var os = require('os');
 var File = gutil.File;
 
+//We need this one for the in-built webserver
+var connect = require('gulp-connect');
+
 
 var paths = {
     potree: [
@@ -92,7 +95,6 @@ var shaders = [
     "src/materials/shaders/blur.fs"
 ];
 
-
 gulp.task("workers", function() {
     gulp.src(workers.laslaz)
         .pipe(encodeWorker('laslaz-worker.js', "Potree.workers.laslaz"))
@@ -161,6 +163,11 @@ gulp.task("scripts", ['workers', 'shaders'], function() {
 
 gulp.task('build', ['scripts']);
 
+// For development, it is now possible to use 'gulp webserver'
+// from the command line to start the server (default port is 8080)
+gulp.task('webserver', function() {
+  connect.server();
+});
 
 var encodeWorker = function(fileName, varname, opt) {
     if (!fileName) throw new PluginError('gulp-concat', 'Missing fileName option for gulp-concat');

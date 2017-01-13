@@ -26,6 +26,14 @@ Potree.View.FirstPerson = class{
 	}
 };
 
+Potree.View.Earth = class{
+	constructor(){
+		this.fov = (Math.PI * 60) / 180;
+		this.position = new THREE.Vector3(10, 10, 10);
+		this.target = new THREE.Vector3(0, 0, 0);
+	}
+}
+
 Potree.Scene = class{
 	constructor(){
 		this.dispatcher = new THREE.EventDispatcher();
@@ -236,7 +244,7 @@ Potree.Viewer = class{
 		this.moveSpeed = 10;
 
 		this.showDebugInfos = false;
-		this.showStats = true;
+		this.showStats = false;
 		this.showBoundingBox = false;
 		this.freeze = false;
 
@@ -245,9 +253,9 @@ Potree.Viewer = class{
 		this.progressBar = new ProgressBar();
 
 		this.stats = new Stats();
-		this.stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
-		document.body.appendChild( this.stats.dom );
-		this.stats.dom.style.left = "100px";
+		//this.stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+		//document.body.appendChild( this.stats.dom );
+		//this.stats.dom.style.left = "100px";
 		
 		this.potreeRenderer = null;
 		this.highQualityRenderer = null;
@@ -278,12 +286,33 @@ Potree.Viewer = class{
 			this.measuringTool.setScene(this.scene);
 			this.profileTool.setScene(this.scene);
 			
+			let onPointcloudAdded = (e) => {
+				this.updateHeightRange();
+				
+				this.mapView = new Potree.MapView(this);
+				this.mapView.init();
+				
+				
+			};
+			
 			this.dispatcher.addEventListener("scene_changed", (e) => {
 				this.measuringTool.setScene(e.scene);
 				this.profileTool.setScene(e.scene);
+				this.updateHeightRange();
+				
+				if(!e.scene.dispatcher.hasEventListener("pointcloud_added", onPointcloudAdded)){
+					e.scene.dispatcher.addEventListener("pointcloud_added", onPointcloudAdded);
+				}
 			});
+			
+			this.scene.dispatcher.addEventListener("pointcloud_added", onPointcloudAdded);
+			
 			//this.transformationTool = new Potree.TransformationTool(this.scene.scenePointCloud, this.scene.camera, this.renderer);
 			//this.volumeTool = new Potree.VolumeTool(this.scene, this.renderer, this.transformationTool);		
+			
+			//this.dispatcher.addEventListener("pointcloud_added", (e) => {
+			//	this.updateHeightRange();
+			//});
 			
 			let onKeyDown = (event) => {
 				//console.log(event.keyCode);
@@ -300,14 +329,6 @@ Potree.Viewer = class{
 				}
 			};
 			
-			this.dispatcher.addEventListener("scene_changed", (e) => {
-				this.updateHeightRange();
-			});
-			
-			this.dispatcher.addEventListener("pointcloud_added", (e) => {
-				this.updateHeightRange();
-			});
-			
 			window.addEventListener( 'keydown', onKeyDown, false );
 		}
 		
@@ -322,7 +343,7 @@ Potree.Viewer = class{
 			this.setPointBudget(1*1000*1000);
 			this.setShowBoundingBox(false);
 			this.setFreeze(false);
-			this.setNavigationMode("Orbit");
+			this.setNavigationMode(Potree.View.Orbit);
 			this.setBackground("gradient");
 			
 			this.scaleFactor = 1;
@@ -387,6 +408,8 @@ Potree.Viewer = class{
 			return this.orbitControls;
 		}else if(view instanceof Potree.View.FirstPerson){
 			return this.fpControls;
+		}else if(view instanceof Potree.View.Earth){
+			return this.earthControls;
 		}else{
 			return null;
 		}
@@ -465,14 +488,30 @@ Potree.Viewer = class{
 	};
 	
 	setNavigationMode(value){
-		//if(value === "Orbit"){
-		//	this.useOrbitControls();
-		//}else if(value === "Flight"){
-		//	this.useFPSControls();
-		//}
-		//}else if(value === "Earth"){
-		//	this.useEarthControls();
-		//}
+		if(this.scene.view instanceof value){
+			return;
+		}
+		
+		if(value === Potree.View.Orbit){
+			let view = new Potree.View.Orbit();
+			view.position = this.scene.view.position;
+			view.target = this.scene.view.target;
+			
+			this.scene.view = view;
+		}else if(value === Potree.View.FirstPerson){
+			let view = new Potree.View.FirstPerson();
+			view.position = this.scene.view.position;
+			view.target = this.scene.view.target;
+			
+			this.scene.view = view;
+		}else if(value === Potree.View.Earth){
+			let view = new Potree.View.Earth();
+			view.position = this.scene.view.position;
+			view.target = this.scene.view.target;
+			
+			this.scene.view = view;
+		}
+		
 	};
 	
 	setShowBoundingBox(value){
@@ -489,14 +528,15 @@ Potree.Viewer = class{
 	setMoveSpeed(value){
 		if(this.moveSpeed !== value){
 			this.moveSpeed = value;
-			this.fpControls.setMoveSpeed(value);
-			this.geoControls.setMoveSpeed(value);
+			this.fpControls.setSpeed(value);
+			//this.geoControls.setSpeed(value);
+			this.earthControls.setSpeed(value);
 			this.dispatcher.dispatchEvent({"type": "move_speed_changed", "viewer": this, "speed": value});
 		}
 	};
 	
 	getMoveSpeed(){
-		return this.fpControls.moveSpeed;
+		return this.moveSpeed;
 	};
 	
 	//setShowSkybox(value){
@@ -1186,6 +1226,28 @@ Potree.Viewer = class{
 			var quality = Potree.utils.getParameterByName("quality");
 			this.setQuality(quality);
 		}
+		
+		if(Potree.utils.getParameterByName("position")){
+			let value = Potree.utils.getParameterByName("position");
+			value = value.replace("[", "").replace("]", "");
+			let tokens = value.split(";");
+			let x = parseFloat(tokens[0]);
+			let y = parseFloat(tokens[1]);
+			let z = parseFloat(tokens[2]);
+			
+			this.scene.view.position.set(x, y, z);
+		}
+		
+		if(Potree.utils.getParameterByName("target")){
+			let value = Potree.utils.getParameterByName("target");
+			value = value.replace("[", "").replace("]", "");
+			let tokens = value.split(";");
+			let x = parseFloat(tokens[0]);
+			let y = parseFloat(tokens[1]);
+			let z = parseFloat(tokens[2]);
+			
+			this.scene.view.target.set(x, y, z);
+		}
 	};
 	
 	
@@ -1215,15 +1277,15 @@ Potree.Viewer = class{
 			});
 		}
 		
-		{ // create GEO CONTROLS
-			this.geoControls = new Potree.GeoControls(this.scene.camera, this.renderer.domElement);
-			this.geoControls.enabled = false;
-			this.geoControls.addEventListener("start", this.disableAnnotations.bind(this));
-			this.geoControls.addEventListener("end", this.enableAnnotations.bind(this));
-			this.geoControls.addEventListener("move_speed_changed", (event) => {
-				this.setMoveSpeed(this.geoControls.moveSpeed);
-			});
-		}
+		//{ // create GEO CONTROLS
+		//	this.geoControls = new Potree.GeoControls(this.scene.camera, this.renderer.domElement);
+		//	this.geoControls.enabled = false;
+		//	this.geoControls.addEventListener("start", this.disableAnnotations.bind(this));
+		//	this.geoControls.addEventListener("end", this.enableAnnotations.bind(this));
+		//	this.geoControls.addEventListener("move_speed_changed", (event) => {
+		//		this.setMoveSpeed(this.geoControls.moveSpeed);
+		//	});
+		//}
 	
 		{ // create ORBIT CONTROLS
 			this.orbitControls = new Potree.OrbitControls(this.renderer);
@@ -1233,10 +1295,10 @@ Potree.Viewer = class{
 		}
 		
 		{ // create EARTH CONTROLS
-			this.earthControls = new THREE.EarthControls(this.scene.camera, this.renderer, this.scenePointCloud);
+			this.earthControls = new Potree.EarthControls(this.renderer);
 			this.earthControls.enabled = false;
-			this.earthControls.addEventListener("start", this.disableAnnotations.bind(this));
-			this.earthControls.addEventListener("end", this.enableAnnotations.bind(this));
+			this.earthControls.dispatcher.addEventListener("start", this.disableAnnotations.bind(this));
+			this.earthControls.dispatcher.addEventListener("end", this.enableAnnotations.bind(this));
 		}
 	};
 
@@ -1314,13 +1376,51 @@ Potree.Viewer = class{
 			this.renderer.domElement.focus();
 		}.bind(this));
 		
-		this.skybox = Potree.utils.loadSkybox(new URL(Potree.resourcePath + "/textures/skybox/").href);
+		this.skybox = Potree.utils.loadSkybox(new URL(Potree.resourcePath + "/textures/skybox2/").href);
 
 		// enable frag_depth extension for the interpolation shader, if available
 		this.renderer.context.getExtension("EXT_frag_depth");
 	}
 
 	update(delta, timestamp){
+		
+		if(window.urlToggle === undefined){
+			window.urlToggle = 0;
+		}else{
+			
+			if(window.urlToggle > 1){
+				{
+					
+					let currentValue = Potree.utils.getParameterByName("position");
+					let strPosition = "["  
+						+ this.scene.view.position.x.toFixed(3) + ";"
+						+ this.scene.view.position.y.toFixed(3) + ";"
+						+ this.scene.view.position.z.toFixed(3) + "]";
+					if(currentValue !== strPosition){
+						Potree.utils.setParameter("position", strPosition);
+					}
+					
+				}
+				
+				{
+					let currentValue = Potree.utils.getParameterByName("target");
+					let strTarget = "["  
+						+ this.scene.view.target.x.toFixed(3) + ";"
+						+ this.scene.view.target.y.toFixed(3) + ";"
+						+ this.scene.view.target.z.toFixed(3) + "]";
+					if(currentValue !== strTarget){
+						Potree.utils.setParameter("target", strTarget);
+					}
+				}
+				
+				window.urlToggle = 0;
+			}
+			
+			window.urlToggle += delta;
+		}
+		
+		
+		
 		
 		let scene = this.scene;
 		let camera = this.scene.camera;
@@ -1434,6 +1534,7 @@ Potree.Viewer = class{
 			
 			this.controls = this.getControls(scene.view);
 			this.controls.enabled = true;
+			this.controls.setSpeed(this.getMoveSpeed());
 		}
 		
 		//let controls = this.getControls(this.scene.view);
@@ -1642,6 +1743,8 @@ class PotreeRenderer{
 		if(viewer.background === "skybox"){
 			viewer.renderer.clear(true, true, false);
 			viewer.skybox.camera.rotation.copy(viewer.scene.camera.rotation);
+			viewer.skybox.camera.fov = viewer.scene.camera.fov;
+			viewer.skybox.camera.updateProjectionMatrix();
 			viewer.renderer.render(viewer.skybox.scene, viewer.skybox.camera);
 		}else if(viewer.background === "gradient"){
 			viewer.renderer.clear(true, true, false);
@@ -1912,11 +2015,10 @@ class EDLRenderer{
 			minFilter: THREE.NearestFilter, 
 			magFilter: THREE.NearestFilter, 
 			format: THREE.RGBAFormat, 
-			type: THREE.FloatType,
-			//type: THREE.UnsignedByteType,
-			//depthBuffer: false,
-			//stencilBuffer: false
+			type: THREE.FloatType
 		} );
+		this.rtColor.depthTexture = new THREE.DepthTexture();
+        this.rtColor.depthTexture.type = THREE.UnsignedIntType;
 		
 	};
 	
@@ -2037,6 +2139,7 @@ class EDLRenderer{
 		
 		//var queryPC = Potree.startQuery("PointCloud", viewer.renderer.getContext());
 		viewer.renderer.render(viewer.scene.scenePointCloud, viewer.scene.camera, this.rtColor);
+		viewer.renderer.render(viewer.scene.scene, viewer.scene.camera, this.rtColor);
 		//Potree.endQuery(queryPC, viewer.renderer.getContext());
 		
 		
@@ -2082,7 +2185,7 @@ class EDLRenderer{
 				Potree.utils.screenPass.render(viewer.renderer, this.edlMaterial);
 			}	
 			
-			viewer.renderer.render(viewer.scene.scene, viewer.scene.camera);
+//			viewer.renderer.render(viewer.scene.scene, viewer.scene.camera);
 			
 			//Potree.endQuery(query, viewer.renderer.getContext());
 			//Potree.resolveQueries(viewer.renderer.getContext());

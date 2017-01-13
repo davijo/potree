@@ -81,6 +81,7 @@ Potree.utils = class{
 
 	static loadSkybox(path){
 		let camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 100000 );
+		camera.up.set(0, 0, 1);
 		let scene = new THREE.Scene();
 
 		let format = ".jpg";
@@ -89,29 +90,52 @@ Potree.utils = class{
 			path + 'py' + format, path + 'ny' + format,
 			path + 'pz' + format, path + 'nz' + format
 		];
+		
+		var materialArray = [];
+		for (var i = 0; i < 6; i++){
+			materialArray.push( new THREE.MeshBasicMaterial({
+				map: THREE.ImageUtils.loadTexture( urls[i] ),
+				side: THREE.BackSide,
+				depthTest: false,
+				depthWrite: false
+				})
+			);
+		}
+		
+		var skyGeometry = new THREE.CubeGeometry( 5000, 5000, 5000 );
+		var skyMaterial = new THREE.MeshFaceMaterial( materialArray );
+		var skybox = new THREE.Mesh( skyGeometry, skyMaterial );
 
-		let textureCube = THREE.ImageUtils.loadTextureCube(urls, THREE.CubeRefractionMapping );
-
-		let shader = {
-			uniforms: {
-				"tCube": {type: "t", value: textureCube},
-				"tFlip": {type: "f", value: -1}
-			},
-			vertexShader: THREE.ShaderLib["cube"].vertexShader,
-			fragmentShader: THREE.ShaderLib["cube"].fragmentShader
-		};
-
-		let material = new THREE.ShaderMaterial({
-			fragmentShader: shader.fragmentShader,
-			vertexShader: shader.vertexShader,
-			uniforms: shader.uniforms,
-			depthWrite: false,
-			side: THREE.BackSide
-		});
-		let mesh = new THREE.Mesh(new THREE.BoxGeometry(100, 100, 100), material);
-		scene.add(mesh);
-
+		scene.add(skybox);
+		
+		// z up
+		scene.rotation.x = Math.PI / 2;
+		
 		return {"camera": camera, "scene": scene};
+
+		//let textureCube = THREE.ImageUtils.loadTextureCube(urls, THREE.CubeRefractionMapping );
+        //
+		//let shader = {
+		//	uniforms: {
+		//		"tCube": {type: "t", value: textureCube},
+		//		"tFlip": {type: "f", value: -1}
+		//	},
+		//	vertexShader: THREE.ShaderLib["cube"].vertexShader,
+		//	fragmentShader: THREE.ShaderLib["cube"].fragmentShader
+		//};
+        //
+		//let material = new THREE.ShaderMaterial({
+		//	fragmentShader: shader.fragmentShader,
+		//	vertexShader: shader.vertexShader,
+		//	uniforms: shader.uniforms,
+		//	depthWrite: false,
+		//	side: THREE.BackSide
+		//});
+		//let mesh = new THREE.Mesh(new THREE.BoxGeometry(1000, 1000, 1000), material);
+		//mesh.rotation.x = Math.PI / 2;
+		//scene.add(mesh);
+        //
+		//return {"camera": camera, "scene": scene};
 	};
 
 	static createGrid(width, length, spacing, color){
@@ -318,6 +342,29 @@ Potree.utils = class{
 		name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
 		let regex = new RegExp("[\\?&]" + name + "=([^&#]*)"), results = regex.exec(location.search);
 		return results === null ? null : decodeURIComponent(results[1].replace(/\+/g, " "));
+	}
+	
+	static setParameter(name, value){
+		//value = encodeURIComponent(value);
+		
+		name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+		let regex = new RegExp("([\\?&])(" + name + "=([^&#]*))");
+		let results = regex.exec(location.search);
+
+		let url = window.location.href;
+		if(results === null){
+			if(window.location.search.length === 0){
+				url = url + "?";
+			}else{
+				url = url + "&";
+			}
+
+			url = url + name + "=" + value;
+		}else{
+			let newValue = name + "=" + value;
+			url = url.replace(results[2], newValue);
+		}
+		window.history.replaceState({}, "", url);
 	}
 };
 

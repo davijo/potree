@@ -2,13 +2,6 @@
  * @author mschuetz / http://mschuetz.at
  *
  *
- * Navigation similar to Google Earth.
- *
- * left mouse: Drag with respect to intersection
- * wheel: zoom towards/away from intersection
- * right mouse: Rotate camera around intersection
- *
- *
  */
 Potree.Controls = class{
 	
@@ -26,7 +19,9 @@ Potree.Controls = class{
 		// y: [0, this.domElement.clientHeight]
 		this.dragStart = null;
 		this.dragEnd = null;
+		this.lastDrag = null;
 		this.viewStart = null;
+		this.mouse = new THREE.Vector2(0, 0);
 		
 		this.wheelDelta = 0;
 		
@@ -44,27 +39,25 @@ Potree.Controls = class{
 	}
 	
 	onKeyDown(e){
-		if(!this.enabled){
-			return;
-		}
+		if(!this.enabled){ return; }
+		
+		e.preventDefault();
 	}
 	
 	onKeyUp(e){
-		if(!this.enabled){
-			return;
-		}
+		if(!this.enabled){ return; }
+		
+		e.preventDefault();
 	}
 	
 	onDoubleClick(e){
-		if(!this.enabled){
-			return;
-		}
+		if(!this.enabled){ return; }
+		
+		e.preventDefault();
 	}
 	
 	onMouseDown(e){
-		if(!this.enabled){
-			return;
-		}
+		if(!this.enabled){ return; }
 		
 		e.preventDefault();
 		
@@ -75,43 +68,52 @@ Potree.Controls = class{
 		
 		this.dragStart = new THREE.Vector2(x, y);
 		this.dragEnd = new THREE.Vector2(x, y);
+		this.lastDrag = new THREE.Vector2(0, 0);
+//		this.mouse.set(x, y);
 		
 		if(this.scene){
-			this.viewStart = {
-				position: this.scene.view.position.clone(),
-				target: this.scene.view.target.clone()
-			};
+			this.viewStart = this.scene.view.clone();
 		}
 	}
 	
 	onMouseUp(e){
-		if(!this.enabled){
-			return;
-		}
+		if(!this.enabled){ return; }
+		
+		e.preventDefault();
 		
 		this.dragStart = null;
 		this.dragEnd = null;
+		this.lastDrag = null;
 		this.viewStart = null;
 	 }
 	 
 	onMouseMove(e){
-		if(!this.enabled){
-			return;
-		}
+		if(!this.enabled){ return; }
+		
+		e.preventDefault();
+		
+		let rect = this.domElement.getBoundingClientRect();
+		let x = e.clientX - rect.left;
+		let y = e.clientY - rect.top;
+		
+		let oldDragEnd;
 		
 		if(this.dragEnd !== null){
-			let rect = this.domElement.getBoundingClientRect();
-			
-			let x = e.clientX - rect.left;
-			let y = e.clientY - rect.top;
+			oldDragEnd = this.dragEnd.clone();
 			this.dragEnd.set(x, y);
 		}
+		
+		if(this.lastDrag !== null && oldDragEnd !== null){
+			this.lastDrag.subVectors(this.dragEnd, oldDragEnd);
+		}
+		
+		this.mouse.set(x, y);
 	}
 	
 	onMouseWheel(e){
-		if(!this.enabled){
-			return;
-		}
+		if(!this.enabled){ return; }
+		
+		e.preventDefault();
 		
 		let delta = 0;
 		if( e.wheelDelta !== undefined ) { // WebKit / Opera / Explorer 9
@@ -123,13 +125,13 @@ Potree.Controls = class{
 		this.wheelDelta += Math.sign(delta);
 	}
 	
-	getMousePointCloudIntersection(event){
+	getMousePointCloudIntersection(mouse){
 		
 		let rect = this.domElement.getBoundingClientRect();
 		
-		let mouse =  {
-			x: ((event.clientX - rect.left) / this.domElement.clientWidth ) * 2 - 1,
-			y: - ((event.clientY - rect.top) / this.domElement.clientHeight ) * 2 + 1
+		let nmouse =  {
+			x: (mouse.x / this.domElement.clientWidth ) * 2 - 1,
+			y: - (mouse.y / this.domElement.clientHeight ) * 2 + 1
 		};
 		
 		let selectedPointcloud = null;
@@ -137,7 +139,7 @@ Potree.Controls = class{
 		let I = null;
 		
 		for(let pointcloud of this.scene.pointclouds){
-			let intersection = Potree.utils.getMousePointCloudIntersection(mouse, this.scene.camera, this.renderer, [pointcloud]);
+			let intersection = Potree.utils.getMousePointCloudIntersection(nmouse, this.scene.camera, this.renderer, [pointcloud]);
 			if(!intersection){
 				continue;
 			}
@@ -150,7 +152,15 @@ Potree.Controls = class{
 			}
 		}
 		
-		return I;
+		if(I){
+			return {
+				location: I,
+				distance: distance,
+				pointcloud: selectedPointcloud
+			};
+		}else{
+			return null;
+		}
 	}
 	
 	setScene(scene){
@@ -171,7 +181,13 @@ Potree.Controls = class{
 		if(!this.enabled){
 			return;
 		}
-		
+	}
+	
+	updateFinished(){
+		if(this.lastDrag){
+			this.lastDrag.set(0, 0);
+		}
+		this.wheelDelta = 0;
 	}
 	
 	getNormalizedDrag(){
@@ -185,6 +201,84 @@ Potree.Controls = class{
 		drag.y = drag.y / this.domElement.clientHeight;
 		
 		return drag;
+	}
+	
+	getNormalizedLastDrag(){
+		if(this.lastDrag === null){
+			 return new THREE.Vector2(0, 0);
+		}
+		
+		let drag = this.lastDrag.clone();
+		
+		drag.x = drag.x / this.domElement.clientWidth;
+		drag.y = drag.y / this.domElement.clientHeight;
+		
+		return drag;
+	}
+	
+	zoomToLocation(mouse){
+		let I = this.getMousePointCloudIntersection(mouse);
+		
+		if(I === null){
+			return;
+		}
+		
+		let nmouse =  {
+			x: (mouse.x / this.domElement.clientWidth ) * 2 - 1,
+			y: - (mouse.y / this.domElement.clientHeight ) * 2 + 1
+		};
+		
+		let targetRadius = 0;
+		{
+			let minimumJumpDistance = 0.2;
+			
+			let vector = new THREE.Vector3( nmouse.x, nmouse.y, 0.5 );
+			vector.unproject(this.scene.camera);
+			
+			let direction = vector.sub(this.scene.camera.position).normalize();
+			let ray = new THREE.Ray(this.scene.camera.position, direction);
+			
+			let nodes = I.pointcloud.nodesOnRay(I.pointcloud.visibleNodes, ray);
+			let lastNode = nodes[nodes.length - 1];
+			let radius = lastNode.getBoundingSphere().radius;
+			targetRadius = Math.min(this.scene.view.radius, radius);
+			targetRadius = Math.max(minimumJumpDistance, targetRadius);
+		}
+		
+		let d = this.scene.view.direction.multiplyScalar(-1);
+		let cameraTargetPosition = new THREE.Vector3().addVectors(I.location, d.multiplyScalar(targetRadius));
+		let controlsTargetPosition = I.location;
+		
+		var animationDuration = 600;
+		var easing = TWEEN.Easing.Quartic.Out;
+		
+		this.enabled = false;
+		
+		// animate position
+		var tween = new TWEEN.Tween(this.scene.view.position).to(cameraTargetPosition, animationDuration);
+		tween.easing(easing);
+		tween.start();
+		
+		// animate target
+		let pivot = this.scene.view.getPivot();
+		var tween = new TWEEN.Tween(pivot).to(I.location, animationDuration);
+		tween.easing(easing);
+		tween.onUpdate(() => {
+			this.scene.view.lookAt(pivot);
+		});
+		tween.onComplete(() => {
+			this.enabled = true;
+			
+			this.dispatcher.dispatchEvent({
+				type: "double_click_move",
+				controls: this,
+				position: cameraTargetPosition,
+				targetLocation: I.location,
+				targetPointcloud: I.pointcloud
+			});
+		});
+		tween.start();
+		
 	}
 	
 };

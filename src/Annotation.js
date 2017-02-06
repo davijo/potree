@@ -76,7 +76,7 @@ Potree.Annotation = function(scene, args = {}){
 	this.domDescription.style.borderRadius = "4px";
 	this.domDescription.style.display = "none";
 	this.domDescription.style.maxWidth = "500px";
-	this.domDescription.className = "annotation";
+	//this.domDescription.className = "annotation";
 	this.domElement.appendChild(this.domDescription);
 	
 	if(this.actions.length > 0){
@@ -113,31 +113,22 @@ Potree.Annotation = function(scene, args = {}){
 	
 	this.domElement.onmouseenter = () => {
 		this.setHighlighted(true);
-		//this.domElement.style.opacity = "0.8";
-		//this.domElement.style.zIndex = "1000";
-		//if(this.description){
-		//	this.descriptionVisible = true;	
-		//	this.domDescription.style.display = "block";
-		//}
 	};
 	
 	this.domElement.onmouseleave = () => {
 		this.setHighlighted(false);
-		//this.domElement.style.opacity = "0.5";
-		//this.domElement.style.zIndex = "100";
-		//this.descriptionVisible = true;	
-		//this.domDescription.style.display = "none";
 	};
 	
 	this.setHighlighted = function(highlighted){
 		if(highlighted){
-			this.domElement.style.opacity = "1.0";
+			this.domElement.style.opacity = "0.8";
 			this.elOrdinal.style.boxShadow = "0 0 5px #fff";
 			this.domElement.style.zIndex = "1000";
 			
 			if(this.description){
 				this.descriptionVisible = true;	
 				this.domDescription.style.display = "block";
+				this.domDescription.style.position = "relative";
 			}
 			
 		}else{
@@ -167,9 +158,9 @@ Potree.Annotation = function(scene, args = {}){
 		{ // animate camera position
 			let tween = new TWEEN.Tween(scope.scene.view.position).to(scope.cameraPosition, animationDuration);
 			tween.easing(easing);
-			tween.onUpdate(function(){
-				console.log(scope.scene.view.position);
-			});
+			//tween.onUpdate(function(){
+			//	console.log(scope.scene.view.position);
+			//});
 			tween.start();
 		}
 		

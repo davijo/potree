@@ -29,6 +29,8 @@ Potree.View = class{
 		c.maxPitch = this.maxPitch;
 		c.minPitch = this.minPitch;
 		c.navigationMode = this.navigationMode;
+		
+		return c;
 	}
 	
 	get pitch(){
@@ -111,11 +113,17 @@ Potree.View = class{
 		this.position = this.position.add(t);
 	}
 	
+	translateWorld(x, y, z){
+		this.position.x += x;
+		this.position.y += y;
+		this.position.z += z;
+	}
+	
 };
 
-Potree.Scene = class{
+Potree.Scene = class extends THREE.EventDispatcher{
 	constructor(){
-		this.dispatcher = new THREE.EventDispatcher();
+		super();
 		
 		this.annotations = [];
 		this.scene = new THREE.Scene();
@@ -128,12 +136,13 @@ Potree.Scene = class{
 		
 		this.measurements = [];
 		this.profiles = [];
+		this.volumes = [];
 		
 		this.fpControls;
 		this.orbitControls;
 		this.earthControls;
 		this.geoControls;
-		this.controls;
+		this.inputHandler;
 		this.view = new Potree.View();
 		
 		this.directionalLight = null;
@@ -146,15 +155,36 @@ Potree.Scene = class{
 		this.pointclouds.push(pointcloud);
 		this.scenePointCloud.add(pointcloud);
 		
-		this.dispatcher.dispatchEvent({
+		this.dispatchEvent({
 			type: "pointcloud_added",
 			pointcloud: pointcloud
 		});
 	};
 	
+	addVolume(volume){
+		this.volumes.push(volume);
+		this.dispatchEvent({
+			"type": "volume_added",
+			"scene": this,
+			"volume": volume
+		});
+	};
+	
+	removeVolume(volume){
+		let index = this.volumes.indexOf(volume);
+		if (index > -1) {
+			this.volumes.splice(index, 1);
+			this.dispatchEvent({
+				"type": "volume_removed",
+				"scene": this,
+				"volume": volume
+			});
+		}
+	};
+	
 	addMeasurement(measurement){
 		this.measurements.push(measurement);
-		this.dispatcher.dispatchEvent({
+		this.dispatchEvent({
 			"type": "measurement_added",
 			"scene": this,
 			"measurement": measurement
@@ -165,7 +195,7 @@ Potree.Scene = class{
 		let index = this.measurements.indexOf(measurement);
 		if (index > -1) {
 			this.measurements.splice(index, 1);
-			this.dispatcher.dispatchEvent({
+			this.dispatchEvent({
 				"type": "measurement_removed",
 				"scene": this,
 				"measurement": measurement
@@ -175,7 +205,7 @@ Potree.Scene = class{
 	
 	addProfile(profile){
 		this.profiles.push(profile);
-		this.dispatcher.dispatchEvent({
+		this.dispatchEvent({
 			"type": "profile_added",
 			"scene": this,
 			"profile": profile
@@ -186,7 +216,7 @@ Potree.Scene = class{
 		let index = this.profiles.indexOf(profile);
 		if (index > -1) {
 			this.profiles.splice(index, 1);
-			this.dispatcher.dispatchEvent({
+			this.dispatchEvent({
 				"type": "profile_removed",
 				"scene": this,
 				"profile": profile
@@ -242,10 +272,31 @@ Potree.Scene = class{
 			bg.material.depthWrite = false;
 			this.sceneBG.add(bg);
 		}
-	}
-	
-	addEventListener(type, callback){
-		this.dispatcher.addEventListener(type, callback);
+		
+		{// lights
+		
+			{
+				let light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( 10, 10, 1 );
+				light.target.position.set( 0, 0,0 );
+				this.scene.add(light);
+			}
+			
+			{
+				let light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( -10, 10, 1 );
+				light.target.position.set( 0, 0,0 );
+				this.scene.add(light);
+			}
+			
+			{
+				let light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( 0, -10, 20 );
+				light.target.position.set( 0, 0,0 );
+				this.scene.add(light);
+			}
+			
+		}
 	}
 	
 	addAnnotation(position, args = {}){
@@ -259,7 +310,7 @@ Potree.Scene = class{
 		
 		this.annotations.push(annotation);
 		
-		this.dispatcher.dispatchEvent({
+		this.dispatchEvent({
 			"type": "annotation_added", 
 			"scene": this,
 			"annotation": annotation});
@@ -339,78 +390,74 @@ Potree.Viewer = class{
 		this.potreeRenderer = null;
 		this.highQualityRenderer = null;
 		this.edlRenderer = null;
-		this.renderer;
+		this.renderer = null;
 		
-		this.scene;
+		this.scene = null;
+		
+		this.inputHandler = null;
 
-		this.measuringTool;
-		this.profileTool;
-		this.volumeTool;
-		this.transformationTool;
+		this.measuringTool = null;
+		this.profileTool = null;
+		this.volumeTool = null;
+		this.transformationTool = null;
 		
 		this.dispatcher = new THREE.EventDispatcher();
-		this.skybox;
+		this.skybox = null;
 		this.clock = new THREE.Clock();
-		this.background;
+		this.background = null;
 		
 		this.initThree();
 		
-		this.scene = new Potree.Scene(this.renderer);
+		let scene = new Potree.Scene(this.renderer);
+		this.setScene(scene);
 		
 		{
-			this.measuringTool = new Potree.MeasuringTool(this.renderer);
-			this.profileTool = new Potree.ProfileTool(this.renderer);
+			this.inputHandler = new Potree.InputHandler(this);
+			this.inputHandler.setScene(this.scene);
+			
+			this.measuringTool = new Potree.MeasuringTool(this);
+			this.profileTool = new Potree.ProfileTool(this);
+			this.volumeTool = new Potree.VolumeTool(this);
+			this.transformationTool = new Potree.TransformationTool(this);
 			
 			this.createControls();
 			
 			this.measuringTool.setScene(this.scene);
 			this.profileTool.setScene(this.scene);
+			this.volumeTool.setScene(this.scene);
+			//this.transformationTool.setScene(this.scene);
 			
 			let onPointcloudAdded = (e) => {
 				this.updateHeightRange();
 				
-				if(e.pointcloud.projection){
-					this.mapView = new Potree.MapView(this);
-					this.mapView.init();
+				if(this.scene.pointclouds.length === 1){
+					let speed = e.pointcloud.boundingBox.getSize().length();
+					speed = speed / 5;
+					this.setMoveSpeed(speed);
+					//this.scene.view.radius = speed * 2.5;
 				}
+				
+				
+				//if(e.pointcloud.projection){
+				//	this.mapView = new Potree.MapView(this);
+				//	this.mapView.init();
+				//}
 				
 			};
 			
 			this.dispatcher.addEventListener("scene_changed", (e) => {
+				this.inputHandler.setScene(e.scene);
 				this.measuringTool.setScene(e.scene);
 				this.profileTool.setScene(e.scene);
+				this.volumeTool.setScene(e.scene);
 				this.updateHeightRange();
 				
-				if(!e.scene.dispatcher.hasEventListener("pointcloud_added", onPointcloudAdded)){
-					e.scene.dispatcher.addEventListener("pointcloud_added", onPointcloudAdded);
+				if(!e.scene.hasEventListener("pointcloud_added", onPointcloudAdded)){
+					e.scene.addEventListener("pointcloud_added", onPointcloudAdded);
 				}
 			});
 			
-			this.scene.dispatcher.addEventListener("pointcloud_added", onPointcloudAdded);
-			
-			//this.transformationTool = new Potree.TransformationTool(this.scene.scenePointCloud, this.scene.camera, this.renderer);
-			//this.volumeTool = new Potree.VolumeTool(this.scene, this.renderer, this.transformationTool);		
-			
-			//this.dispatcher.addEventListener("pointcloud_added", (e) => {
-			//	this.updateHeightRange();
-			//});
-			
-			let onKeyDown = (event) => {
-				//console.log(event.keyCode);
-				
-				if(event.keyCode === 69){
-					// e pressed
-					this.transformationTool.translate();
-				}else if(event.keyCode === 82){
-					// r pressed
-					this.transformationTool.scale();
-				}else if(event.keyCode === 84){
-					// t pressed
-					this.transformationTool.rotate();
-				}
-			};
-			
-			window.addEventListener( 'keydown', onKeyDown, false );
+			this.scene.addEventListener("pointcloud_added", onPointcloudAdded);
 		}
 		
 		{// set defaults
@@ -586,9 +633,9 @@ Potree.Viewer = class{
 	setMoveSpeed(value){
 		if(this.moveSpeed !== value){
 			this.moveSpeed = value;
-			this.fpControls.setSpeed(value);
+			//this.fpControls.setSpeed(value);
 			//this.geoControls.setSpeed(value);
-			this.earthControls.setSpeed(value);
+			//this.earthControls.setSpeed(value);
 			this.dispatcher.dispatchEvent({"type": "move_speed_changed", "viewer": this, "speed": value});
 		}
 	};
@@ -1112,7 +1159,10 @@ Potree.Viewer = class{
 		bs = bs.clone().applyMatrix4(node.matrixWorld); 
 		
 		view.position.copy(camera.position);
-		//view.lookAt(bs.center);
+		view.radius = view.position.distanceTo(bs.center);
+		//let target = bs.center;
+		//target.z = target.z - bs.radius * 0.8;
+		//view.lookAt(target);
 		
 		this.dispatcher.dispatchEvent({"type": "zoom_to", "viewer": this});
 	};
@@ -1146,9 +1196,9 @@ Potree.Viewer = class{
 	fitToScreen(){
 		var box = this.getBoundingBox(this.scene.pointclouds);
 		
-		if(this.transformationTool && this.transformationTool.targets.length > 0){
-			box = this.transformationTool.getBoundingBox();
-		}
+		//if(this.transformationTool && this.transformationTool.selection.length > 0){
+		//	box = this.transformationTool.getBoundingBox();
+		//}
 
 		var node = new THREE.Object3D();
 		node.boundingBox = box;
@@ -1314,17 +1364,17 @@ Potree.Viewer = class{
 
 	createControls(){
 		{ // create FIRST PERSON CONTROLS
-			this.fpControls = new Potree.FirstPersonControls(this.renderer);
+			this.fpControls = new Potree.FirstPersonControls(this);
 			this.fpControls.enabled = false;
-			this.fpControls.dispatcher.addEventListener("start", this.disableAnnotations.bind(this));
-			this.fpControls.dispatcher.addEventListener("end", this.enableAnnotations.bind(this));
-			this.fpControls.dispatcher.addEventListener("double_click_move", (event) => {
-				let distance = event.targetLocation.distanceTo(event.position);
-				this.setMoveSpeed(Math.pow(distance, 0.4));
-			});
-			this.fpControls.dispatcher.addEventListener("move_speed_changed", (event) => {
-				this.setMoveSpeed(this.fpControls.moveSpeed);
-			});
+			this.fpControls.addEventListener("start", this.disableAnnotations.bind(this));
+			this.fpControls.addEventListener("end", this.enableAnnotations.bind(this));
+			//this.fpControls.dispatcher.addEventListener("double_click_move", (event) => {
+			//	let distance = event.targetLocation.distanceTo(event.position);
+			//	this.setMoveSpeed(Math.pow(distance, 0.4));
+			//});
+			//this.fpControls.dispatcher.addEventListener("move_speed_changed", (event) => {
+			//	this.setMoveSpeed(this.fpControls.moveSpeed);
+			//});
 		}
 		
 		//{ // create GEO CONTROLS
@@ -1338,17 +1388,17 @@ Potree.Viewer = class{
 		//}
 	
 		{ // create ORBIT CONTROLS
-			this.orbitControls = new Potree.OrbitControls(this.renderer);
+			this.orbitControls = new Potree.OrbitControls(this);
 			this.orbitControls.enabled = false;
-			this.orbitControls.dispatcher.addEventListener("start", this.disableAnnotations.bind(this));
-			this.orbitControls.dispatcher.addEventListener("end", this.enableAnnotations.bind(this));
+			this.orbitControls.addEventListener("start", this.disableAnnotations.bind(this));
+			this.orbitControls.addEventListener("end", this.enableAnnotations.bind(this));
 		}
 		
 		{ // create EARTH CONTROLS
-			this.earthControls = new Potree.EarthControls(this.renderer);
+			this.earthControls = new Potree.EarthControls(this);
 			this.earthControls.enabled = false;
-			this.earthControls.dispatcher.addEventListener("start", this.disableAnnotations.bind(this));
-			this.earthControls.dispatcher.addEventListener("end", this.enableAnnotations.bind(this));
+			this.earthControls.addEventListener("start", this.disableAnnotations.bind(this));
+			this.earthControls.addEventListener("end", this.enableAnnotations.bind(this));
 		}
 	};
 
@@ -1371,41 +1421,60 @@ Potree.Viewer = class{
 
 	};
 
-	loadGUI(){
+	loadGUI(callback){
 		var sidebarContainer = $('#potree_sidebar_container');
-		sidebarContainer.load(new URL(Potree.scriptPath + "/sidebar.html").href);
-		sidebarContainer.css("width", "300px");
-		sidebarContainer.css("height", "100%");
+		sidebarContainer.load(new URL(Potree.scriptPath + "/sidebar.html").href, () => {
+			
+			sidebarContainer.css("width", "300px");
+			sidebarContainer.css("height", "100%");
 
-		var imgMenuToggle = document.createElement("img");
-		imgMenuToggle.src = new URL(Potree.resourcePath + "/icons/menu_button.svg").href;
-		imgMenuToggle.onclick = this.toggleSidebar;
-		imgMenuToggle.classList.add("potree_menu_toggle");
+			var imgMenuToggle = document.createElement("img");
+			imgMenuToggle.src = new URL(Potree.resourcePath + "/icons/menu_button.svg").href;
+			imgMenuToggle.onclick = this.toggleSidebar;
+			imgMenuToggle.classList.add("potree_menu_toggle");
 
-		var imgMapToggle = document.createElement("img");
-		imgMapToggle.src = new URL(Potree.resourcePath + "/icons/map_icon.png").href;
-		imgMapToggle.style.display = "none";
-		imgMapToggle.onclick = this.toggleMap;
-		imgMapToggle.id = "potree_map_toggle";
+			var imgMapToggle = document.createElement("img");
+			imgMapToggle.src = new URL(Potree.resourcePath + "/icons/map_icon.png").href;
+			imgMapToggle.style.display = "none";
+			imgMapToggle.onclick = this.toggleMap;
+			imgMapToggle.id = "potree_map_toggle";
+			
+			viewer.renderArea.insertBefore(imgMapToggle, viewer.renderArea.children[0]);
+			viewer.renderArea.insertBefore(imgMenuToggle, viewer.renderArea.children[0]);
+			
+			this.mapView = new Potree.MapView(this);
+			this.mapView.init();
+			
+			i18n.init({ 
+				lng: 'en',
+				resGetPath: '../resources/lang/__lng__/__ns__.json',
+				preload: ['en', 'fr', 'de'],
+				getAsync: true,
+				debug: false
+				}, function(t) { 
+				// Start translation once everything is loaded
+				$("body").i18n();
+			});
+			
+			$(function() {
+				initSidebar();
+				
+				
+			});
+			
+			let elProfile = $('<div>').load(new URL(Potree.scriptPath + "/profile.html").href, () => {
+				$('#potree_render_area').append(elProfile.children());
+				this._2dprofile = new Potree.Viewer.Profile(this, document.getElementById("profile_draw_container"));
+				
+				if(callback){
+					callback();
+				}
+			});
+			
+		});
 		
-		viewer.renderArea.insertBefore(imgMapToggle, viewer.renderArea.children[0]);
-		viewer.renderArea.insertBefore(imgMenuToggle, viewer.renderArea.children[0]);
 		
-		var elProfile = $('<div>').load(new URL(Potree.scriptPath + "/profile.html").href, function(){
-			$('#potree_render_area').append(elProfile.children());
-			this._2dprofile = new Potree.Viewer.Profile(this, document.getElementById("profile_draw_container"));
-		}.bind(this));
 		
-        i18n.init({ 
-            lng: 'en',
-            resGetPath: '../resources/lang/__lng__/__ns__.json',
-            preload: ['en', 'fr', 'de'],
-            getAsync: true,
-            debug: true
-            }, function(t) { 
-            // Start translation once everything is loaded
-            $("body").i18n();
-        });
 	}
     
     setLanguage(lang){
@@ -1434,41 +1503,41 @@ Potree.Viewer = class{
 
 	update(delta, timestamp){
 		
-		if(window.urlToggle === undefined){
-			window.urlToggle = 0;
-		}else{
-			
-			if(window.urlToggle > 1){
-				{
-					
-					let currentValue = Potree.utils.getParameterByName("position");
-					let strPosition = "["  
-						+ this.scene.view.position.x.toFixed(3) + ";"
-						+ this.scene.view.position.y.toFixed(3) + ";"
-						+ this.scene.view.position.z.toFixed(3) + "]";
-					if(currentValue !== strPosition){
-						Potree.utils.setParameter("position", strPosition);
-					}
-					
-				}
-				
-				{
-					let currentValue = Potree.utils.getParameterByName("target");
-					let pivot = this.scene.view.getPivot();
-					let strTarget = "["  
-						+ pivot.x.toFixed(3) + ";"
-						+ pivot.y.toFixed(3) + ";"
-						+ pivot.z.toFixed(3) + "]";
-					if(currentValue !== strTarget){
-						Potree.utils.setParameter("target", strTarget);
-					}
-				}
-				
-				window.urlToggle = 0;
-			}
-			
-			window.urlToggle += delta;
-		}
+		//if(window.urlToggle === undefined){
+		//	window.urlToggle = 0;
+		//}else{
+		//	
+		//	if(window.urlToggle > 1){
+		//		{
+		//			
+		//			let currentValue = Potree.utils.getParameterByName("position");
+		//			let strPosition = "["  
+		//				+ this.scene.view.position.x.toFixed(3) + ";"
+		//				+ this.scene.view.position.y.toFixed(3) + ";"
+		//				+ this.scene.view.position.z.toFixed(3) + "]";
+		//			if(currentValue !== strPosition){
+		//				Potree.utils.setParameter("position", strPosition);
+		//			}
+		//			
+		//		}
+		//		
+		//		{
+		//			let currentValue = Potree.utils.getParameterByName("target");
+		//			let pivot = this.scene.view.getPivot();
+		//			let strTarget = "["  
+		//				+ pivot.x.toFixed(3) + ";"
+		//				+ pivot.y.toFixed(3) + ";"
+		//				+ pivot.z.toFixed(3) + "]";
+		//			if(currentValue !== strTarget){
+		//				Potree.utils.setParameter("target", strTarget);
+		//			}
+		//		}
+		//		
+		//		window.urlToggle = 0;
+		//	}
+		//	
+		//	window.urlToggle += delta;
+		//}
 		
 		
 		
@@ -1555,9 +1624,10 @@ Potree.Viewer = class{
 		}
 		
 		if(!this.freeze){
-			var result = Potree.updatePointClouds(this.scene.pointclouds, this.scene.camera, this.renderer);
+			var result = Potree.updatePointClouds(scene.pointclouds, camera, this.renderer);
 			visibleNodes = result.visibleNodes.length;
 			visiblePoints = result.numVisiblePoints;
+			camera.near = result.lowestSpacing * 10.0;
 		}
 		
 		
@@ -1582,13 +1652,14 @@ Potree.Viewer = class{
 		if(this.getControls(scene.view.navigationMode) !== this.controls){
 			if(this.controls){
 				this.controls.enabled = false;
+				this.inputHandler.removeInputListener(this.controls);
 			}
 			
 			this.controls = this.getControls(scene.view.navigationMode);
 			this.controls.enabled = true;
-			this.controls.setSpeed(this.getMoveSpeed());
+			this.inputHandler.addInputListener(this.controls);
 		}
-		
+		//
 		if(this.controls !== null){
 			this.controls.setScene(scene);
 			this.controls.update(delta);
@@ -1603,74 +1674,41 @@ Potree.Viewer = class{
 			camera.rotation.z = this.scene.view.yaw;
 		}
 
-		// update progress bar
-		// TODO fix progressbar
-		//if(this.scene.pointclouds.length > 0){
-		//	this.progressBar.progress = progress / this.scene.pointclouds.length;
-		//	
-		//	var message;
-		//	if(progress === 0){
-		//		message = "loading";
-		//	}else{
-		//		message = "loading: " + parseInt(progress*100 / this.scene.pointclouds.length) + "%";
-		//	}
-		//	this.progressBar.message = message;
-		//	
-		//	if(progress >= 0.999){
-		//		this.progressBar.hide();
-		//	}else if(progress < 1){
-		//		this.progressBar.show();
-		//	}
-		//}
-		
-		//this.volumeTool.update();
-		//this.transformationTool.update();
-		//this.profileTool.update();
-		
-		
-		var clipBoxes = [];
-		
-		for(let profile of this.scene.profiles){
-			for(let box of profile.boxes){
+		{ // update clip boxes
+			//let boxes = this.scene.profiles.reduce( (a, b) => {return a.boxes.concat(b.boxes)}, []);
+			//boxes = boxes.concat(this.scene.volumes.filter(v => v.clip));
+			
+			let boxes = this.scene.volumes.filter(v => v.clip);
+			for(let profile of this.scene.profiles){
+				boxes = boxes.concat(profile.boxes);
+			}
+			
+			
+			let clipBoxes = boxes.map( box => {
 				box.updateMatrixWorld();
-				var boxInverse = new THREE.Matrix4().getInverse(box.matrixWorld);
-				var boxPosition = box.getWorldPosition();
-				clipBoxes.push({inverse: boxInverse, position: boxPosition});
+				let boxInverse = new THREE.Matrix4().getInverse(box.matrixWorld);
+				let boxPosition = box.getWorldPosition();
+				return {inverse: boxInverse, position: boxPosition};
+			});
+			
+			for(let pointcloud of this.scene.pointclouds){
+				pointcloud.material.setClipBoxes(clipBoxes);
 			}
 		}
-		//
-		//for(var i = 0; i < this.volumeTool.volumes.length; i++){
-		//	var volume = this.volumeTool.volumes[i];
-		//	
-		//	if(volume.clip){
-		//		volume.updateMatrixWorld();
-		//		var boxInverse = new THREE.Matrix4().getInverse(volume.matrixWorld);
-		//		var boxPosition = volume.getWorldPosition();
-		//		//clipBoxes.push(boxInverse);
-		//		clipBoxes.push({inverse: boxInverse, position: boxPosition});
-		//	}
-		//}
-		//
-		//
-		for(let pointcloud of this.scene.pointclouds){
-			pointcloud.material.setClipBoxes(clipBoxes);
-		}
 
-		{// update annotations
+		{ // update annotations
 			var distances = [];
-			for(var i = 0; i < this.scene.annotations.length; i++){
-				var ann = this.scene.annotations[i];
+			for(let ann of this.scene.annotations){
 				var screenPos = ann.position.clone().project(this.scene.camera);
 				
 				screenPos.x = this.renderArea.clientWidth * (screenPos.x + 1) / 2;
 				screenPos.y = this.renderArea.clientHeight * (1 - (screenPos.y + 1) / 2);
 				
 				ann.domElement.style.left = Math.floor(screenPos.x - ann.domElement.clientWidth / 2) + "px";
-				ann.domElement.style.top = Math.floor(screenPos.y - ann.domElement.clientHeight / 2) + "px";
+				ann.domElement.style.top = Math.floor(screenPos.y - ann.elOrdinal.clientHeight / 2) + "px";
 				
-				//ann.domDescription.style.left = screenPos.x - ann.domDescription.clientWidth / 2 + 10;
-				//ann.domDescription.style.top = screenPos.y + 30;
-
+				
+				
 				distances.push({annotation: ann, distance: screenPos.z});
 
 				if(-1 > screenPos.z || screenPos.z > 1){
@@ -1679,7 +1717,9 @@ Potree.Viewer = class{
 					ann.domElement.style.display = "initial";
 				}
 			}
+			
 			distances.sort(function(a,b){return b.distance - a.distance});
+			
 			for(var i = 0; i < distances.length; i++){
 				var ann = distances[i].annotation;
 				ann.domElement.style.zIndex = "" + i;
@@ -1699,6 +1739,9 @@ Potree.Viewer = class{
 		
 		if(this.mapView){
 			this.mapView.update(delta, this.scene.camera);
+			if(this.mapView.sceneProjection){
+				$( "#potree_map_toggle" ).css("display", "block");
+			}
 		}
 
 		TWEEN.update(timestamp);
@@ -2026,12 +2069,21 @@ class PotreeRenderer{
 		viewer.renderer.render(viewer.scene.scenePointCloud, viewer.scene.camera);
 		//Potree.endQuery(queryPC, viewer.renderer.getContext());
 		
-		viewer.profileTool.render();
-		//viewer.volumeTool.render();
+		
+		viewer.volumeTool.update();
+		viewer.renderer.render(viewer.volumeTool.sceneVolume, viewer.scene.camera);
+		viewer.renderer.render(viewer.controls.sceneControls, viewer.scene.camera);
 		
 		viewer.renderer.clearDepth();
-		viewer.measuringTool.render();
-		//viewer.transformationTool.render();
+		
+		viewer.measuringTool.update();
+		viewer.profileTool.update();
+		viewer.transformationTool.update();
+		
+		viewer.renderer.render(viewer.measuringTool.sceneMeasurement, viewer.scene.camera);
+		viewer.renderer.render(viewer.profileTool.sceneProfile, viewer.scene.camera);
+		viewer.renderer.render(viewer.transformationTool.sceneTransform, viewer.scene.camera);
+		
 		
 		//Potree.endQuery(queryAll, viewer.renderer.getContext());
 		
@@ -2223,11 +2275,19 @@ class HighQualityRenderer{
 				Potree.utils.screenPass.render(viewer.renderer, this.normalizationMaterial);
 			}
 			
-			//viewer.volumeTool.render();
+			viewer.volumeTool.update();
+			viewer.renderer.render(viewer.volumeTool.sceneVolume, viewer.scene.camera);
+			viewer.renderer.render(viewer.controls.sceneControls, viewer.scene.camera);
+			
 			viewer.renderer.clearDepth();
-			viewer.profileTool.render();
-			viewer.measuringTool.render();
-			//viewer.transformationTool.render();
+			
+			viewer.measuringTool.update();
+			viewer.profileTool.update();
+			viewer.transformationTool.update();
+			
+			viewer.renderer.render(viewer.measuringTool.sceneMeasurement, viewer.scene.camera);
+			viewer.renderer.render(viewer.profileTool.sceneProfile, viewer.scene.camera);
+			viewer.renderer.render(viewer.transformationTool.sceneTransform, viewer.scene.camera);
 		}
 
 	}
@@ -2409,6 +2469,9 @@ class EDLRenderer{
 				}
 			}
 		}
+		
+		viewer.volumeTool.update();
+		viewer.renderer.render(viewer.volumeTool.sceneVolume, viewer.scene.camera, this.rtColor);
 			
 		if(viewer.scene.pointclouds.length > 0){
 			
@@ -2439,34 +2502,25 @@ class EDLRenderer{
 			//Potree.endQuery(query, viewer.renderer.getContext());
 			//Potree.resolveQueries(viewer.renderer.getContext());
 			
-			//if(window.endedQuery == null){
-			//	ext.endQueryEXT(ext.TIME_ELAPSED_EXT);
-			//	window.endedQuery = window.timerQuery;
-			//}
-			//
-			//
-			//if(window.endedQuery != null){
-			//	var available = ext.getQueryObjectEXT(window.endedQuery, ext.QUERY_RESULT_AVAILABLE_EXT);
-			//	var disjoint = viewer.renderer.getContext().getParameter(ext.GPU_DISJOINT_EXT);
-			//	
-			//	if (available && !disjoint) {
-			//		// See how much time the rendering of the object took in nanoseconds.
-			//		var timeElapsed = ext.getQueryObjectEXT(window.endedQuery, ext.QUERY_RESULT_EXT);
-			//		var miliseconds = timeElapsed / (1000 * 1000);
-			//	
-			//		console.log(miliseconds + "ms");
-			//	  
-			//		window.endedQuery = null;
-			//		window.timerQuery = null;
-			//	}
-			//}
-
 			
-			
-			viewer.profileTool.render();
-			//viewer.volumeTool.render();
 			viewer.renderer.clearDepth();
-			viewer.measuringTool.render();
+			//viewer.volumeTool.update();
+			//viewer.renderer.render(viewer.volumeTool.sceneVolume, viewer.scene.camera);
+			viewer.renderer.render(viewer.controls.sceneControls, viewer.scene.camera);
+			
+			
+			viewer.measuringTool.update();
+			viewer.profileTool.update();
+			viewer.transformationTool.update();
+			
+			viewer.renderer.render(viewer.measuringTool.sceneMeasurement, viewer.scene.camera);
+			viewer.renderer.render(viewer.profileTool.sceneProfile, viewer.scene.camera);
+			viewer.renderer.render(viewer.transformationTool.sceneTransform, viewer.scene.camera);
+			
+			//viewer.profileTool.render();
+			//viewer.volumeTool.render();
+			//viewer.renderer.clearDepth();
+			//viewer.measuringTool.render();
 			//viewer.transformationTool.render();
 		}
 		

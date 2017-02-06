@@ -20,11 +20,9 @@ Potree.MapView = class{
 	}
 	
 	init(){
-		//this.setSceneProjection("+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83 +units=m +no_defs");
-		
 		$( "#potree_map" ).draggable({ handle: $('#potree_map_header') });
 		$( "#potree_map" ).resizable();
-		$( "#potree_map_toggle" ).css("display", "block");
+		//$( "#potree_map_toggle" ).css("display", "block");
 	
 		let extentsLayer = this.getExtentsLayer();
 		let cameraLayer = this.getCameraLayer();
@@ -186,25 +184,52 @@ Potree.MapView = class{
 			selectedFeatures.clear();
 		});
 		
-		// adding pointclouds to map
-		this.viewer.dispatcher.addEventListener("pointcloud_loaded", (event) => {
-			this.load(event.pointcloud);
+		//// adding pointclouds to map
+		//this.viewer.dispatcher.addEventListener("pointcloud_added", (event) => {
+		//	this.load(event.pointcloud);
+		//});
+		//for(var i = 0; i < this.viewer.scene.pointclouds.length; i++){
+		//	this.load(this.viewer.scene.pointclouds[i]);
+		//}
+		
+		//this.viewer.profileTool.addEventListener("profile_added", this.updateToolDrawings);
+		//this.viewer.profileTool.addEventListener("profile_removed", this.updateToolDrawings);
+		//this.viewer.profileTool.addEventListener("marker_moved", this.updateToolDrawings);
+		//this.viewer.profileTool.addEventListener("marker_removed", this.updateToolDrawings);
+		//this.viewer.profileTool.addEventListener("marker_added", this.updateToolDrawings);
+		//
+		//this.viewer.measuringTool.addEventListener("measurement_added", this.updateToolDrawings);
+		//this.viewer.measuringTool.addEventListener("marker_added", this.updateToolDrawings);
+		//this.viewer.measuringTool.addEventListener("marker_removed", this.updateToolDrawings);
+		//this.viewer.measuringTool.addEventListener("marker_moved", this.updateToolDrawings);
+
+		this.viewer.addEventListener("scene_changed", e => {
+			this.setScene(e.scene);
 		});
+		
+		this.onPointcloudAdded = e => {
+			this.load(e.pointcloud);
+		};
+		
+		this.setScene(this.viewer.scene);
+	}
+	
+	setScene(scene){
+		if(this.scene === scene){
+			return;
+		};
+		
+		if(this.scene){
+			this.scene.removeEventListener("pointcloud_added", this.onPointcloudAdded);
+		}
+		
+		this.scene = scene;
+		
+		this.scene.addEventListener("pointcloud_added", this.onPointcloudAdded);
+		
 		for(var i = 0; i < this.viewer.scene.pointclouds.length; i++){
 			this.load(this.viewer.scene.pointclouds[i]);
 		}
-		
-		this.viewer.profileTool.addEventListener("profile_added", this.updateToolDrawings);
-		this.viewer.profileTool.addEventListener("profile_removed", this.updateToolDrawings);
-		this.viewer.profileTool.addEventListener("marker_moved", this.updateToolDrawings);
-		this.viewer.profileTool.addEventListener("marker_removed", this.updateToolDrawings);
-		this.viewer.profileTool.addEventListener("marker_added", this.updateToolDrawings);
-		
-		this.viewer.measuringTool.addEventListener("measurement_added", this.updateToolDrawings);
-		this.viewer.measuringTool.addEventListener("marker_added", this.updateToolDrawings);
-		this.viewer.measuringTool.addEventListener("marker_removed", this.updateToolDrawings);
-		this.viewer.measuringTool.addEventListener("marker_moved", this.updateToolDrawings);
-
 	}
 	
 	getExtentsLayer(){
@@ -415,6 +440,10 @@ Potree.MapView = class{
 			return;
 		}
 		
+		if(!pointcloud.projection){
+			return;
+		}
+		
 		if(!this.sceneProjection){
 			this.setSceneProjection(pointcloud.projection);
 		}
@@ -512,6 +541,10 @@ Potree.MapView = class{
 	}
 	
 	update(delta){
+		if(!this.sceneProjection){
+			return;
+		}
+		
 		var pm = $( "#potree_map" );
 		
 		if(!pm.is(":visible")){

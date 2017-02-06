@@ -14,6 +14,7 @@
     "tt": {
         "angle_measurement": "Angle measurement",
         "distance_measurement": "Distance measurement",
+        "height_measurement": "Height measurement",
         "area_measurement": "Area measurement",
         "volume_measurement": "Volume measurement",
         "height_profile": "Height profile",
@@ -51,8 +52,12 @@
     "profile": {
         "nb_points": "Point number",
         "title": "Height profile",
-        "save": "Save"
+        "save_las": "Save as LAS"
     },
+	"scene": {
+		"camera_position": "Camera Position",
+		"camera_target": "Camera Target"
+	},
     "settings": {
         "language": "Language"
     }

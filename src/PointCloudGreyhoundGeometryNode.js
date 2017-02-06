@@ -227,6 +227,7 @@ Potree.PointCloudGreyhoundGeometryNode.prototype.loadHierarchyThenPoints =
 			currentNode.level = level;
 			currentNode.numPoints = numPoints;
 			currentNode.hasChildren = decoded[i].children > 0;
+			currentNode.spacing = pgg.spacing / Math.pow(2, level);
 			parentNode.addChild(currentNode);
 			nodes[name] = currentNode;
 		}
@@ -313,6 +314,7 @@ Potree.PointCloudGreyhoundGeometryNode.prototype.dispose = function(){
 	}
 };
 
-THREE.EventDispatcher.prototype.apply(
-        Potree.PointCloudGreyhoundGeometryNode.prototype);
+//THREE.EventDispatcher.prototype.apply(
+//        Potree.PointCloudGreyhoundGeometryNode.prototype);
+Object.assign( Potree.PointCloudGreyhoundGeometryNode.prototype, THREE.EventDispatcher.prototype );
 

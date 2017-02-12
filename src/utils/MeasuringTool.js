@@ -1,11 +1,18 @@
 
 
-Potree.MeasuringTool = class MeasuringTool{
+Potree.MeasuringTool = class MeasuringTool extends THREE.EventDispatcher{
 	
 	constructor(viewer){
+		super();
 		
 		this.viewer = viewer;
 		this.renderer = viewer.renderer;
+		
+		this.addEventListener("start_inserting_measurement", e => {
+			this.viewer.dispatchEvent({
+				type: "cancel_insertions"
+			});
+		});
 		
 		this.sceneMeasurement = new THREE.Scene();
 		this.sceneMeasurement.name = "scene_measurement";
@@ -38,8 +45,14 @@ Potree.MeasuringTool = class MeasuringTool{
 	startInsertion(args = {}){
 		
 		let domElement = this.viewer.renderer.domElement;
-
+		
 		let measure = new Potree.Measure();
+		
+		this.dispatchEvent({
+			type: "start_inserting_measurement",
+			measure: measure
+		});
+
 		measure.showDistances =  (args.showDistances == null) ? true : args.showDistances;
 		measure.showArea = args.showArea || false;
 		measure.showAngles = args.showAngles || false;
@@ -50,24 +63,37 @@ Potree.MeasuringTool = class MeasuringTool{
 		
 		this.sceneMeasurement.add(measure);
 		
+		let cancel = {
+			removeLastMarker: measure.maxMarkers > 3,
+			callback: null
+		};
+		
 		let insertionCallback = (e) => {
 			if(e.button === THREE.MOUSE.LEFT){
 				
 				measure.addMarker(measure.points[measure.points.length - 1].position.clone());
 				
 				if(measure.points.length >= measure.maxMarkers){
-					domElement.removeEventListener("mouseup", insertionCallback, true);
+					cancel.callback();
 				}
 				
 				this.viewer.inputHandler.startDragging(
 					measure.spheres[measure.spheres.length - 1]);
 			}else if(e.button === THREE.MOUSE.RIGHT){
-				measure.removeMarker(measure.points.length - 1);
-				domElement.removeEventListener("mouseup", insertionCallback, true);
+				cancel.callback();
 			}
 		};
 		
+		cancel.callback = e => {
+			if(cancel.removeLastMarker){
+				measure.removeMarker(measure.points.length - 1);
+			}
+			domElement.removeEventListener("mouseup", insertionCallback, true);
+			this.viewer.removeEventListener("cancel_insertions", cancel.callback);
+		};
+		
 		if(measure.maxMarkers > 1){
+			this.viewer.addEventListener("cancel_insertions", cancel.callback);
 			domElement.addEventListener("mouseup", insertionCallback , true);
 		}
 		
@@ -149,9 +175,9 @@ Potree.MeasuringTool = class MeasuringTool{
 				
 				{ // height edge
 					let edge = measure.heightEdge;
-					let lowpoint = edge.geometry.vertices[0];
-					let start = edge.geometry.vertices[2];
-					let end = edge.geometry.vertices[3];
+					let lowpoint = edge.geometry.vertices[0].clone().add(edge.position);
+					let start = edge.geometry.vertices[2].clone().add(edge.position);
+					let end = edge.geometry.vertices[3].clone().add(edge.position);
 					
 					let lowScreen = lowpoint.clone().project(camera);
 					let startScreen = start.clone().project(camera);
@@ -170,9 +196,6 @@ Potree.MeasuringTool = class MeasuringTool{
 					let startEL = toPixelCoordinates(startScreen);
 					let endEL = toPixelCoordinates(endScreen);
 					
-					//let pixelDistance = startEL.distanceTo(endEL);
-					//let worldDistance = start.distanceTo(end);
-					
 					let distances = [0, 
 						lowEL.distanceTo(startEL),
 						startEL.distanceTo(endEL), 0];
@@ -185,26 +208,6 @@ Potree.MeasuringTool = class MeasuringTool{
 						
 					edge.material.dashSize = 10;
 					edge.material.gapSize = 10;
-						
-					//let sum = 0;
-					//let cumDistances = distances.map( e => {
-					//	sum = sum + e;
-					//	return sum;
-					//});
-					//
-					//heightEdge.geometry.lineDistances = cumDistances;
-					//heightEdge.geometry.lineDistancesNeedUpdate = true;
-					//
-					//edge.material.dashSize = 10;
-					//edge.material.gapSize = 10;
-					
-					
-					//edge.material.dashSize = 10 * worldDistance / pixelDistance;
-					//edge.material.gapSize = edge.material.dashSize;
-					
-					//edge.material.dashSize = pixelDistance / 5;
-					//edge.material.gapSize = pixelDistance / 5;
-					
 				}
 			}
 			

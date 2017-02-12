@@ -60,8 +60,10 @@ Potree.GreyhoundBinaryLoader.prototype.parse = function(node, buffer){
 
     node.numPoints = numPoints;
 
-	var ww = Potree.workers.greyhoundBinaryDecoder.getWorker();
-	ww.onmessage = function(e){
+	let workerPath = Potree.scriptPath + "/workers/GreyhoundBinaryDecoderWorker.js";
+	let worker = Potree.workerPool.getWorker(workerPath);
+
+	worker.onmessage = function(e){
 		var data = e.data;
 		var buffers = data.attributeBuffers;
 		var tightBoundingBox = new THREE.Box3(
@@ -69,7 +71,7 @@ Potree.GreyhoundBinaryLoader.prototype.parse = function(node, buffer){
 			new THREE.Vector3().fromArray(data.tightBoundingBox.max)
 		);
 
-		Potree.workers.greyhoundBinaryDecoder.returnWorker(ww);
+		Potree.workerPool.returnWorker(workerPath, worker);
 
 		var geometry = new THREE.BufferGeometry();
 
@@ -94,12 +96,13 @@ Potree.GreyhoundBinaryLoader.prototype.parse = function(node, buffer){
 						//console.log(fb);
                         break;
                     case pointAttributes.COLOR_PACKED:
-                        addAttribute('color', buffer, 3);
+						geometry.addAttribute("color", 
+							new THREE.BufferAttribute(new Uint8Array(buffer), 3, true));
                         break;
                     case pointAttributes.INTENSITY:
                         addAttribute('intensity', buffer, 1);
                         break;
-                    case pointAttributes.CLASSITICATION:
+                    case pointAttributes.CLASSIFICATION:
                         addAttribute('classification', buffer, 1);
                         break;
                     case pointAttributes.NORMAL_SPHEREMAPPED:
@@ -129,8 +132,8 @@ Potree.GreyhoundBinaryLoader.prototype.parse = function(node, buffer){
 
     var bb = node.boundingBox;
     var pco = node.pcoGeometry;
-	
-	
+
+
 	//let nodeOffset = node.boundingBox.getSize().multiplyScalar(0.5);
 	//let nodeOffset = new THREE.Vector3(0, 0, 0);
 	let nodeOffset = node.pcoGeometry.boundingBox.getCenter();
@@ -143,9 +146,10 @@ Potree.GreyhoundBinaryLoader.prototype.parse = function(node, buffer){
 		min: [bb.min.x, bb.min.y, bb.min.z],
 		max: [bb.max.x, bb.max.y, bb.max.z],
 		offset: nodeOffset.toArray(),
-        scale: this.scale
+        scale: this.scale,
+        normalize: node.pcoGeometry.normalize
 	};
 
-	ww.postMessage(message, [message.buffer]);
+	worker.postMessage(message, [message.buffer]);
 };
 

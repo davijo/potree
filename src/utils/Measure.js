@@ -152,9 +152,22 @@ Potree.Measure = class Measure extends THREE.Object3D{
 					if(i !== -1){
 						this.setPosition(i, I.location);
 						this.dispatchEvent({
-							"type": "marker_moved"
+							"type": "marker_moved",
+							"measurement": this,
+							"index": i
 						});
 					}
+				}
+			};
+			
+			let drop = e => {
+				let i = this.spheres.indexOf(e.drag.object);
+				if(i !== -1){
+					this.dispatchEvent({
+						"type": "marker_dropped",
+						"measurement": this,
+						"index": i
+					});
 				}
 			};
 			
@@ -162,6 +175,7 @@ Potree.Measure = class Measure extends THREE.Object3D{
 			let mouseleave = (e) => e.object.material.emissive.setHex(0x000000);
 			
 			sphere.addEventListener("drag", drag);
+			sphere.addEventListener("drop", drop);
 			sphere.addEventListener("mouseover", mouseover);
 			sphere.addEventListener("mouseleave", mouseleave);
 		}
@@ -239,6 +253,33 @@ Potree.Measure = class Measure extends THREE.Object3D{
 		return Math.abs(area / 2);
 	};
 	
+	getTotalDistance(){
+		
+		if(this.points.length === 0){
+			return 0;
+		}
+		
+		let distance = 0;
+		
+		for(let i = 1; i < this.points.length; i++){
+			let prev = this.points[i-1].position;
+			let curr = this.points[i].position;
+			let d = prev.distanceTo(curr);
+			
+			distance += d;
+		}
+		
+		if(this.closed && this.points.length > 1){
+			let first = this.points[0].position;
+			let last = this.points[this.points.length - 1].position;
+			let d = last.distanceTo(first);
+			
+			distance += d;
+		}
+		
+		return distance;
+	}
+	
 	getAngleBetweenLines(cornerPoint, point1, point2) {
         let v1 = new THREE.Vector3().subVectors(point1.position, cornerPoint.position);
         let v2 = new THREE.Vector3().subVectors(point2.position, cornerPoint.position);
@@ -313,8 +354,10 @@ Potree.Measure = class Measure extends THREE.Object3D{
 				
 				edge.material.color = this.color;
 				
-				edge.geometry.vertices[0].copy(point.position);
-				edge.geometry.vertices[1].copy(nextPoint.position);
+				edge.position.copy(point.position);
+				
+				edge.geometry.vertices[0].set(0, 0, 0);
+				edge.geometry.vertices[1].copy(nextPoint.position).sub(point.position);
 				
 				edge.geometry.verticesNeedUpdate = true;
 				edge.geometry.computeBoundingSphere();
@@ -386,11 +429,12 @@ Potree.Measure = class Measure extends THREE.Object3D{
 				let start = new THREE.Vector3(highPoint.x, highPoint.y, min);
 				let end = new THREE.Vector3(highPoint.x, highPoint.y, max);
 				
+				heightEdge.position.copy(lowPoint);
 				
-				heightEdge.geometry.vertices[0].copy(lowPoint);
-				heightEdge.geometry.vertices[1].copy(start);
-				heightEdge.geometry.vertices[2].copy(start);
-				heightEdge.geometry.vertices[3].copy(end);
+				heightEdge.geometry.vertices[0].set(0, 0, 0);
+				heightEdge.geometry.vertices[1].copy(start).sub(lowPoint);
+				heightEdge.geometry.vertices[2].copy(start).sub(lowPoint);
+				heightEdge.geometry.vertices[3].copy(end).sub(lowPoint);
 				
 				heightEdge.geometry.verticesNeedUpdate = true;
 				//heightEdge.geometry.computeLineDistances();

@@ -300,7 +300,12 @@ Potree.Scene = class extends THREE.EventDispatcher{
 	}
 	
 	addAnnotation(position, args = {}){
-		args.position = position;
+		if(position instanceof Array){
+			args.position = new THREE.Vector3().fromArray(position);
+		}else if(position instanceof THREE.Vector3){
+			args.position = position;
+		}
+		
 		
 		if(!args.cameraTarget){
 			args.cameraTarget = position;
@@ -324,9 +329,11 @@ Potree.Scene = class extends THREE.EventDispatcher{
 	
 };
 
-Potree.Viewer = class{
+Potree.Viewer = class PotreeViewer extends THREE.EventDispatcher{
 	
 	constructor(domElement, args){
+		super();
+		
 		var a = args || {};
 		this.pointCloudLoadedCallback = a.onPointCloudLoaded || function(){};
 		
@@ -401,7 +408,6 @@ Potree.Viewer = class{
 		this.volumeTool = null;
 		this.transformationTool = null;
 		
-		this.dispatcher = new THREE.EventDispatcher();
 		this.skybox = null;
 		this.clock = new THREE.Clock();
 		this.background = null;
@@ -445,7 +451,7 @@ Potree.Viewer = class{
 				
 			};
 			
-			this.dispatcher.addEventListener("scene_changed", (e) => {
+			this.addEventListener("scene_changed", (e) => {
 				this.inputHandler.setScene(e.scene);
 				this.measuringTool.setScene(e.scene);
 				this.profileTool.setScene(e.scene);
@@ -499,7 +505,7 @@ Potree.Viewer = class{
 		let oldScene = scene;
 		this.scene = scene;
 		
-		this.dispatcher.dispatchEvent({
+		this.dispatchEvent({
 			type: "scene_changed",
 			oldScene: oldScene,
 			scene: scene
@@ -582,10 +588,6 @@ Potree.Viewer = class{
 	//		callback({"type": "loading_failed"});
 	//	}
 	//}
-
-	addEventListener(type, callback){
-		this.dispatcher.addEventListener(type, callback);
-	}
 	
 	getMinNodeSize(){
 		return this.minNodeSize;
@@ -594,7 +596,7 @@ Potree.Viewer = class{
 	setMinNodeSize(value){
 		if(this.minNodeSize !== value){
 			this.minNodeSize = value;
-			this.dispatcher.dispatchEvent({"type": "minnodesize_changed", "viewer": this});
+			this.dispatchEvent({"type": "minnodesize_changed", "viewer": this});
 		}
 	};
 	
@@ -608,7 +610,7 @@ Potree.Viewer = class{
 		}
 		
 		this.background = bg;
-		this.dispatcher.dispatchEvent({"type": "background_changed", "viewer": this});
+		this.dispatchEvent({"type": "background_changed", "viewer": this});
 	}
 	
 	setDescription(value){
@@ -622,7 +624,7 @@ Potree.Viewer = class{
 	setShowBoundingBox(value){
 		if(this.showBoundingBox !== value){
 			this.showBoundingBox = value;
-			this.dispatcher.dispatchEvent({"type": "show_boundingbox_changed", "viewer": this});
+			this.dispatchEvent({"type": "show_boundingbox_changed", "viewer": this});
 		}
 	};
 	
@@ -636,7 +638,7 @@ Potree.Viewer = class{
 			//this.fpControls.setSpeed(value);
 			//this.geoControls.setSpeed(value);
 			//this.earthControls.setSpeed(value);
-			this.dispatcher.dispatchEvent({"type": "move_speed_changed", "viewer": this, "speed": value});
+			this.dispatchEvent({"type": "move_speed_changed", "viewer": this, "speed": value});
 		}
 	};
 	
@@ -647,7 +649,7 @@ Potree.Viewer = class{
 	//setShowSkybox(value){
 	//	if(this.showSkybox !== value){
 	//		this.showSkybox = value;
-	//		this.dispatcher.dispatchEvent({"type": "show_skybox_changed", "viewer": this});
+	//		this.dispatchEvent({"type": "show_skybox_changed", "viewer": this});
 	//	}
 	//};
 	//
@@ -659,7 +661,7 @@ Potree.Viewer = class{
 		if(this.heightMin !== min || this.heightMax !== max){
 			this.heightMin = min || this.heightMin;
 			this.heightMax = max || this.heightMax;
-			this.dispatcher.dispatchEvent({"type": "height_range_changed", "viewer": this});
+			this.dispatchEvent({"type": "height_range_changed", "viewer": this});
 		}
 	};
 	
@@ -679,7 +681,7 @@ Potree.Viewer = class{
 		if(this.intensityRange[0] !== min || this.intensityRange[1] !== max){
 			this.intensityRange[0] = min || this.intensityRange[0];
 			this.intensityRange[1] = max || this.intensityRange[1];
-			this.dispatcher.dispatchEvent({"type": "intensity_range_changed", "viewer": this});
+			this.dispatchEvent({"type": "intensity_range_changed", "viewer": this});
 		}
 	};
 	
@@ -690,7 +692,7 @@ Potree.Viewer = class{
 	setIntensityGamma(value){
 		if(this.intensityGamma !== value){
 			this.intensityGamma = value;
-			this.dispatcher.dispatchEvent({"type": "intensity_gamma_changed", "viewer": this});
+			this.dispatchEvent({"type": "intensity_gamma_changed", "viewer": this});
 		}
 	};
 	
@@ -701,7 +703,7 @@ Potree.Viewer = class{
 	setIntensityContrast(value){
 		if(this.intensityContrast !== value){
 			this.intensityContrast = value;
-			this.dispatcher.dispatchEvent({"type": "intensity_contrast_changed", "viewer": this});
+			this.dispatchEvent({"type": "intensity_contrast_changed", "viewer": this});
 		}
 	};
 	
@@ -712,7 +714,7 @@ Potree.Viewer = class{
 	setIntensityBrightness(value){
 		if(this.intensityBrightness !== value){
 			this.intensityBrightness = value;
-			this.dispatcher.dispatchEvent({"type": "intensity_brightness_changed", "viewer": this});
+			this.dispatchEvent({"type": "intensity_brightness_changed", "viewer": this});
 		}
 	};
 	
@@ -723,7 +725,7 @@ Potree.Viewer = class{
 	setRGBGamma(value){
 		if(this.rgbGamma !== value){
 			this.rgbGamma = value;
-			this.dispatcher.dispatchEvent({"type": "rgb_gamma_changed", "viewer": this});
+			this.dispatchEvent({"type": "rgb_gamma_changed", "viewer": this});
 		}
 	};
 	
@@ -734,7 +736,7 @@ Potree.Viewer = class{
 	setRGBContrast(value){
 		if(this.rgbContrast !== value){
 			this.rgbContrast = value;
-			this.dispatcher.dispatchEvent({"type": "rgb_contrast_changed", "viewer": this});
+			this.dispatchEvent({"type": "rgb_contrast_changed", "viewer": this});
 		}
 	};
 	
@@ -745,7 +747,7 @@ Potree.Viewer = class{
 	setRGBBrightness(value){
 		if(this.rgbBrightness !== value){
 			this.rgbBrightness = value;
-			this.dispatcher.dispatchEvent({"type": "rgb_brightness_changed", "viewer": this});
+			this.dispatchEvent({"type": "rgb_brightness_changed", "viewer": this});
 		}
 	};
 	
@@ -756,7 +758,7 @@ Potree.Viewer = class{
 	setMaterialTransition(t){
 		if(this.materialTransition !== t){
 			this.materialTransition = t;
-			this.dispatcher.dispatchEvent({"type": "material_transition_changed", "viewer": this});
+			this.dispatchEvent({"type": "material_transition_changed", "viewer": this});
 		}
 	};
 	
@@ -767,7 +769,7 @@ Potree.Viewer = class{
 	setWeightRGB(w){
 		if(this.weightRGB !== w){
 			this.weightRGB = w;
-			this.dispatcher.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
+			this.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
 		}
 	};
 	
@@ -778,7 +780,7 @@ Potree.Viewer = class{
 	setWeightIntensity(w){
 		if(this.weightIntensity !== w){
 			this.weightIntensity = w;
-			this.dispatcher.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
+			this.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
 		}
 	};
 	
@@ -789,7 +791,7 @@ Potree.Viewer = class{
 	setWeightElevation(w){
 		if(this.weightElevation !== w){
 			this.weightElevation = w;
-			this.dispatcher.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
+			this.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
 		}
 	};
 	
@@ -800,7 +802,7 @@ Potree.Viewer = class{
 	setWeightClassification(w){
 		if(this.weightClassification !== w){
 			this.weightClassification = w;
-			this.dispatcher.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
+			this.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
 		}
 	};
 	
@@ -811,7 +813,7 @@ Potree.Viewer = class{
 	setWeightReturnNumber(w){
 		if(this.weightReturnNumber !== w){
 			this.weightReturnNumber = w;
-			this.dispatcher.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
+			this.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
 		}
 	};
 	
@@ -822,7 +824,7 @@ Potree.Viewer = class{
 	setWeightSourceID(w){
 		if(this.weightSourceID !== w){
 			this.weightSourceID = w;
-			this.dispatcher.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
+			this.dispatchEvent({"type": "attribute_weights_changed", "viewer": this});
 		}
 	};
 	
@@ -833,7 +835,7 @@ Potree.Viewer = class{
 	setIntensityMax(max){
 		if(this.intensityMax !== max){
 			this.intensityMax = max;
-			this.dispatcher.dispatchEvent({"type": "intensity_max_changed", "viewer": this});
+			this.dispatchEvent({"type": "intensity_max_changed", "viewer": this});
 		}
 	};
 	
@@ -844,7 +846,7 @@ Potree.Viewer = class{
 	setFreeze(value){
 		if(this.freeze != value){
 			this.freeze = value;
-			this.dispatcher.dispatchEvent({"type": "freeze_changed", "viewer": this});
+			this.dispatchEvent({"type": "freeze_changed", "viewer": this});
 		}
 	};
 	
@@ -856,7 +858,7 @@ Potree.Viewer = class{
 
 		if(Potree.pointBudget != value){
 			Potree.pointBudget = parseInt(value);
-			this.dispatcher.dispatchEvent({"type": "point_budget_changed", "viewer": this});
+			this.dispatchEvent({"type": "point_budget_changed", "viewer": this});
 		}
 	};
 	
@@ -867,7 +869,7 @@ Potree.Viewer = class{
 	setClipMode(clipMode){
 		if(this.clipMode != clipMode){
 			this.clipMode = clipMode;
-			this.dispatcher.dispatchEvent({"type": "clip_mode_changed", "viewer": this});
+			this.dispatchEvent({"type": "clip_mode_changed", "viewer": this});
 		}
 	};
 	
@@ -878,7 +880,7 @@ Potree.Viewer = class{
 	setDEMCollisionsEnabled(value){
 		if(this.useDEMCollisions !== value){
 			this.useDEMCollisions = value;
-			this.dispatcher.dispatchEvent({"type": "use_demcollisions_changed", "viewer": this});
+			this.dispatchEvent({"type": "use_demcollisions_changed", "viewer": this});
 		};
 	};
 	
@@ -889,7 +891,7 @@ Potree.Viewer = class{
 	setEDLEnabled(value){
 		if(this.useEDL != value){
 			this.useEDL = value;
-			this.dispatcher.dispatchEvent({"type": "use_edl_changed", "viewer": this});
+			this.dispatchEvent({"type": "use_edl_changed", "viewer": this});
 		}
 	};
 	
@@ -900,7 +902,7 @@ Potree.Viewer = class{
 	setEDLRadius(value){
 		if(this.edlRadius !== value){
 			this.edlRadius = value;
-			this.dispatcher.dispatchEvent({"type": "edl_radius_changed", "viewer": this});
+			this.dispatchEvent({"type": "edl_radius_changed", "viewer": this});
 		}
 	};
 	
@@ -911,7 +913,7 @@ Potree.Viewer = class{
 	setEDLStrength(value){
 		if(this.edlStrength !== value){
 			this.edlStrength = value;
-			this.dispatcher.dispatchEvent({"type": "edl_strength_changed", "viewer": this});
+			this.dispatchEvent({"type": "edl_strength_changed", "viewer": this});
 		}
 	};
 	
@@ -922,7 +924,7 @@ Potree.Viewer = class{
 	setPointSize(value){
 		if(this.pointSize !== value){
 			this.pointSize = value;
-			this.dispatcher.dispatchEvent({"type": "point_size_changed", "viewer": this});
+			this.dispatchEvent({"type": "point_size_changed", "viewer": this});
 		}
 	};
 	
@@ -933,7 +935,7 @@ Potree.Viewer = class{
 	setMinPointSize(value){
 		if(this.minPointSize !== value){
 			this.minPointSize = value;
-			this.dispatcher.dispatchEvent({"type": "min_point_size_changed", "viewer": this});
+			this.dispatchEvent({"type": "min_point_size_changed", "viewer": this});
 		}
 	}
 	
@@ -944,7 +946,7 @@ Potree.Viewer = class{
 	setMaxPointSize(value){
 		if(this.maxPointSize !== value){
 			this.maxPointSize = value;
-			this.dispatcher.dispatchEvent({"type": "max_point_size_changed", "viewer": this});
+			this.dispatchEvent({"type": "max_point_size_changed", "viewer": this});
 		}
 	}
 	
@@ -955,7 +957,7 @@ Potree.Viewer = class{
 	setFOV(value){
 		if(this.fov !== value){
 			this.fov = value;
-			this.dispatcher.dispatchEvent({"type": "fov_changed", "viewer": this});
+			this.dispatchEvent({"type": "fov_changed", "viewer": this});
 		}
 	};
 	
@@ -966,7 +968,7 @@ Potree.Viewer = class{
 	setOpacity(value){
 		if(this.opacity !== value){
 			this.opacity = value;
-			this.dispatcher.dispatchEvent({"type": "opacity_changed", "viewer": this});
+			this.dispatchEvent({"type": "opacity_changed", "viewer": this});
 		}
 	};
 	
@@ -985,7 +987,7 @@ Potree.Viewer = class{
 				this.pointSizeType = Potree.PointSizeType.ADAPTIVE;
 			}
 			
-			this.dispatcher.dispatchEvent({"type": "point_sizing_changed", "viewer": this});
+			this.dispatchEvent({"type": "point_sizing_changed", "viewer": this});
 		}
 	};
 	
@@ -1004,7 +1006,7 @@ Potree.Viewer = class{
 		}
 		
 		if(oldQuality !== this.quality){
-			this.dispatcher.dispatchEvent({"type": "quality_changed", "viewer": this});
+			this.dispatchEvent({"type": "quality_changed", "viewer": this});
 		}
 	};
 	
@@ -1043,7 +1045,7 @@ Potree.Viewer = class{
 		}
 
 		if(changed){
-			this.dispatcher.dispatchEvent({"type": "classification_visibility_changed", "viewer": this});
+			this.dispatchEvent({"type": "classification_visibility_changed", "viewer": this});
 		}
 	};
 
@@ -1051,7 +1053,7 @@ Potree.Viewer = class{
 		if(this.pointColorType !== this.toMaterialID(value)){
 			this.pointColorType = this.toMaterialID(value);
 			
-			this.dispatcher.dispatchEvent({"type": "material_changed", "viewer": this});
+			this.dispatchEvent({"type": "material_changed", "viewer": this});
 		}
 	};
 	
@@ -1059,7 +1061,7 @@ Potree.Viewer = class{
 		if(this.pointColorType !== value){
 			this.pointColorType = value;
 			
-			this.dispatcher.dispatchEvent({"type": "material_changed", "viewer": this});
+			this.dispatchEvent({"type": "material_changed", "viewer": this});
 		}
 	}
 	
@@ -1164,7 +1166,7 @@ Potree.Viewer = class{
 		//target.z = target.z - bs.radius * 0.8;
 		//view.lookAt(target);
 		
-		this.dispatcher.dispatchEvent({"type": "zoom_to", "viewer": this});
+		this.dispatchEvent({"type": "zoom_to", "viewer": this});
 	};
 	
 	showAbout(){
@@ -1186,24 +1188,21 @@ Potree.Viewer = class{
 			
 			pointcloud.updateMatrixWorld(true);
 			
-			var boxWorld = Potree.utils.computeTransformedBoundingBox(pointcloud.boundingBox, pointcloud.matrixWorld)
+			let pointcloudBox = pointcloud.pcoGeometry.tightBoundingBox ?  pointcloud.pcoGeometry.tightBoundingBox : pointcloud.boundingBox;
+			var boxWorld = Potree.utils.computeTransformedBoundingBox(pointcloudBox, pointcloud.matrixWorld)
 			box.union(boxWorld);
 		}
 
 		return box;
 	};
 	
-	fitToScreen(){
+	fitToScreen(factor = 1){
 		var box = this.getBoundingBox(this.scene.pointclouds);
 		
-		//if(this.transformationTool && this.transformationTool.selection.length > 0){
-		//	box = this.transformationTool.getBoundingBox();
-		//}
-
 		var node = new THREE.Object3D();
 		node.boundingBox = box;
 		
-		this.zoomTo(node, 1);
+		this.zoomTo(node, factor);
 	};
 	
 	setTopView(){
@@ -1368,11 +1367,11 @@ Potree.Viewer = class{
 			this.fpControls.enabled = false;
 			this.fpControls.addEventListener("start", this.disableAnnotations.bind(this));
 			this.fpControls.addEventListener("end", this.enableAnnotations.bind(this));
-			//this.fpControls.dispatcher.addEventListener("double_click_move", (event) => {
+			//this.fpControls.addEventListener("double_click_move", (event) => {
 			//	let distance = event.targetLocation.distanceTo(event.position);
 			//	this.setMoveSpeed(Math.pow(distance, 0.4));
 			//});
-			//this.fpControls.dispatcher.addEventListener("move_speed_changed", (event) => {
+			//this.fpControls.addEventListener("move_speed_changed", (event) => {
 			//	this.setMoveSpeed(this.fpControls.moveSpeed);
 			//});
 		}
@@ -1447,7 +1446,7 @@ Potree.Viewer = class{
 			
 			i18n.init({ 
 				lng: 'en',
-				resGetPath: '../resources/lang/__lng__/__ns__.json',
+				resGetPath: Potree.resourcePath + '/lang/__lng__/__ns__.json',
 				preload: ['en', 'fr', 'de'],
 				getAsync: true,
 				debug: false
@@ -1458,8 +1457,6 @@ Potree.Viewer = class{
 			
 			$(function() {
 				initSidebar();
-				
-				
 			});
 			
 			let elProfile = $('<div>').load(new URL(Potree.scriptPath + "/profile.html").href, () => {
@@ -1467,7 +1464,7 @@ Potree.Viewer = class{
 				this._2dprofile = new Potree.Viewer.Profile(this, document.getElementById("profile_draw_container"));
 				
 				if(callback){
-					callback();
+					$(callback);
 				}
 			});
 			
@@ -1628,6 +1625,8 @@ Potree.Viewer = class{
 			visibleNodes = result.visibleNodes.length;
 			visiblePoints = result.numVisiblePoints;
 			camera.near = result.lowestSpacing * 10.0;
+			camera.far = -this.getBoundingBox().applyMatrix4(camera.matrixWorldInverse).min.z;
+			camera.far = Math.max(camera.far * 1.5, 1000);
 		}
 		
 		
@@ -1746,7 +1745,10 @@ Potree.Viewer = class{
 
 		TWEEN.update(timestamp);
 		
-		this.dispatcher.dispatchEvent({"type": "update", "delta": delta, "timestamp": timestamp});
+		this.dispatchEvent({
+			"type": "update", 
+			"delta": delta, 
+			"timestamp": timestamp});
 	}
 
 
@@ -2062,13 +2064,13 @@ class PotreeRenderer{
 			pointcloud.material.weighted = false;
 		}
 		
-		// render scene
-		viewer.renderer.render(viewer.scene.scene, viewer.scene.camera);
 		
 		//var queryPC = Potree.startQuery("PointCloud", viewer.renderer.getContext());
 		viewer.renderer.render(viewer.scene.scenePointCloud, viewer.scene.camera);
 		//Potree.endQuery(queryPC, viewer.renderer.getContext());
 		
+		// render scene
+		viewer.renderer.render(viewer.scene.scene, viewer.scene.camera);
 		
 		viewer.volumeTool.update();
 		viewer.renderer.render(viewer.volumeTool.sceneVolume, viewer.scene.camera);

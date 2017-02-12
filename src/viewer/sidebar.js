@@ -422,6 +422,10 @@ function initMaterials(){
 	$("#optMaterial").selectmenu({change: updateMaterialPanel});
 	$("#optMaterial").val(viewer.getMaterialName()).selectmenu("refresh");
 	updateMaterialPanel();
+	
+	viewer.addEventListener("material_changed", e => {
+		$("#optMaterial").val(viewer.getMaterialName()).selectmenu("refresh");
+	});
 }
 
 function initClassificationList(){
@@ -571,6 +575,32 @@ function initAppearance(){
 	viewer.addEventListener("opacity_changed", function(event){
 		$('#lblOpacity')[0].innerHTML = viewer.getOpacity().toFixed(2);
 		$( "#sldOpacity" ).slider({value: viewer.getOpacity()});
+	});
+	
+	viewer.addEventListener("point_sizing_changed", e => {
+		let type = viewer.pointSizeType;
+		let conversion = new Map([
+			[Potree.PointSizeType.FIXED, "Fixed"],
+			[Potree.PointSizeType.ATTENUATED, "Attenuated"],
+			[Potree.PointSizeType.ADAPTIVE, "Adaptive"]
+		]);
+		
+		let typename = conversion.get(type);
+		
+		$( "#optPointSizing" )
+			.selectmenu()
+			.val(typename)
+			.selectmenu("refresh");
+	});
+	
+	viewer.addEventListener("quality_changed", e => {
+		
+		let name = viewer.quality;
+		
+		$( "#optQuality" )
+			.selectmenu()
+			.val(name)
+			.selectmenu("refresh");
 	});
 	
 	viewer.addEventListener("edl_radius_changed", function(event){
@@ -794,7 +824,7 @@ function initAnnotationDetails(){
 		"scene": viewer.scene
 	});
 	
-	viewer.dispatcher.addEventListener("scene_changed", setScene);
+	viewer.addEventListener("scene_changed", setScene);
 }
 
 function initMeasurementDetails(){
@@ -1086,6 +1116,15 @@ function initMeasurementDetails(){
 				
 			}
 			
+			if(measurement && measurement.showDistances && measurement.points.length > 1){
+				var txt = "Total: " + Potree.utils.addCommas(measurement.getTotalDistance().toFixed(3));
+				
+				var elNodeTotalDistance = $('<div>').addClass("measurement-detail-node-distance");
+				elNodeTotalDistance.html(txt);
+				
+				$(elPanelBody).append(elNodeTotalDistance);
+			}
+			
 			if(measurement && measurement.showArea){
 				var txt = Potree.utils.addCommas(measurement.getArea().toFixed(1)) + "\u00B2";
 				
@@ -1104,6 +1143,40 @@ function initMeasurementDetails(){
 				};
 				$(elPanelBody).append(elOpenProfileWindow);
 			}
+			
+			let doExport = measurement.showDistances && !measurement.showAngles;
+			if(doExport){
+				let elBottomBar = $(`<span style="display:flex">
+					<span style="flex-grow: 1"></span>
+				</span>`);
+				$(elPanelBody).append(elBottomBar);
+				
+				{
+					let icon = Potree.resourcePath + "/icons/file_geojson.svg";
+					let elDownload = $(`<a href="#" download="measure.json" class="measurepanel_downloads"><img src="${icon}"></img></a>`);
+					
+					elDownload.click(function(e){
+						let geojson = Potree.GeoJSONExporter.toString(measurement);
+						let url = window.URL.createObjectURL(new Blob([geojson], {type: 'data:application/octet-stream'}));
+						elDownload.attr("href", url);
+					});
+					
+					elBottomBar.append(elDownload);
+				}
+				
+				{
+					let icon = Potree.resourcePath + "/icons/file_dxf.svg";
+					let elDownload = $(`<a href="#" download="measure.dxf" class="measurepanel_downloads"><img src="${icon}"></img></a>`);
+					
+					elDownload.click(function(e){
+						let dxf = Potree.DXFExporter.toString(measurement);
+						let url = window.URL.createObjectURL(new Blob([dxf], {type: 'data:application/octet-stream'}));
+						elDownload.attr("href", url);
+					});
+					
+					elBottomBar.append(elDownload);
+				}
+			}
 		};
 		
 		updateDisplay();
@@ -1111,9 +1184,9 @@ function initMeasurementDetails(){
 		if(measurement instanceof Potree.Measure){
 			let onremove = function(event){
 				if(event.measurement === measurement){
-					scene.removeEventListener("marker_added", updateDisplay);
-					scene.removeEventListener("marker_removed", updateDisplay);
-					scene.removeEventListener("marker_moved", updateDisplay);
+					//scene.removeEventListener("marker_added", updateDisplay);
+					//scene.removeEventListener("marker_removed", updateDisplay);
+					//scene.removeEventListener("marker_moved", updateDisplay);
 					$(elLi).remove();
 				}
 			};
@@ -1208,7 +1281,7 @@ function initSceneList(){
 			var elLabel = $('<label>');
 			var elInput = $('<input type="checkbox">');
 			
-			elInput[0].checked = true;
+			elInput[0].checked = pointcloud.visible;
 			elInput[0].id = "scene_list_item_pointcloud_" + id;
 			elLabel[0].id = "scene_list_item_label_pointcloud_" + id;
 			elLabel[0].htmlFor = "scene_list_item_pointcloud_" + id;
@@ -1324,6 +1397,15 @@ initSettings = function(){
 		change: function(event, ui){
 			viewer.setClipMode(toClipModeCode(ui.item.value));
 		}
+	});
+	
+	viewer.addEventListener("clip_mode_changed", e => {
+		let string = toClipModeString(viewer.clipMode);
+		
+		$( "#optClipMode" )
+			.selectmenu()
+			.val(string)
+			.selectmenu("refresh");
 	});
 };
 

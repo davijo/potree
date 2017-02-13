@@ -7,6 +7,7 @@ var size = require('gulp-size');
 var rename = require('gulp-rename');
 var uglify = require('gulp-uglify');
 var gutil = require('gulp-util');
+var babel = require('gulp-babel');
 var through = require('through');
 var os = require('os');
 var File = gutil.File;
@@ -16,6 +17,58 @@ var connect = require('gulp-connect');
 
 
 var paths = {
+  potreeCore: [
+    "src/Potree.js",
+		"src/PointCloudTree.js",
+		"src/WorkerPool.js",
+		"build/shaders/shaders.js",
+		//"src/extensions/EventDispatcher.js",
+		//"src/extensions/PerspectiveCamera.js",
+		//"src/extensions/Ray.js",
+		"src/loader/POCLoader.js",
+		"src/loader/PointAttributes.js",
+		"src/loader/BinaryLoader.js",
+		//"src/loader/GreyhoundBinaryLoader.js",
+		//"src/loader/GreyhoundLoader.js",
+		"src/loader/LasLazLoader.js",
+		"src/materials/PointCloudMaterial.js",
+		"src/materials/EyeDomeLightingMaterial.js",
+		"src/materials/BlurMaterial.js",
+		//"src/navigation/InputHandler.js",
+		//"src/navigation/FirstPersonControls.js",
+		//"src/navigation/GeoControls.js",
+		//"src/navigation/OrbitControls.js",
+		//"src/navigation/EarthControls.js",
+		"src/LRU.js",
+		//"src/Annotation.js",
+		"src/ProfileRequest.js",
+		"src/PointCloudOctree.js",
+		"src/PointCloudOctreeGeometry.js",
+		//"src/PointCloudGreyhoundGeometry.js",
+		//"src/PointCloudGreyhoundGeometryNode.js",
+		"src/utils.js",
+		"src/Features.js",
+		//"src/TextSprite.js",
+		//"src/AnimationPath.js",
+		"src/Version.js",
+		//"src/utils/Measure.js",
+		//"src/utils/MeasuringTool.js",
+		//"src/utils/Profile.js",
+		//"src/utils/ProfileTool.js",
+		//"src/utils/TransformationTool.js",
+		//"src/utils/Volume.js",
+		//"src/utils/VolumeTool.js",
+		//"src/exporter/GeoJSONExporter.js",
+		//"src/exporter/DXFExporter.js",
+		//"src/arena4d/PointCloudArena4D.js",
+		//"src/arena4d/PointCloudArena4DGeometry.js",
+		//"src/viewer/ProgressBar.js",
+		//"src/viewer/viewer.js",
+		//"src/viewer/profile.js",
+		//"src/viewer/map.js",
+		//"src/viewer/sidebar.js",
+		//"src/stuff/HoverMenu.js"
+	],
 	potree : [
 		"src/Potree.js",
 		"src/PointCloudTree.js",
@@ -146,6 +199,9 @@ gulp.task("shaders", function(){
 
 gulp.task("scripts", ['workers','shaders'], function(){
 	gulp.src(paths.potree)
+    .pipe(babel({
+      presets: ['es2015']
+    }))
 		.pipe(concat('potree.js'))
 		.pipe(size({showFiles: true}))
 		.pipe(gulp.dest('build/potree'));
@@ -167,7 +223,32 @@ gulp.task("scripts", ['workers','shaders'], function(){
 	return;
 });
 
+gulp.task("scripts-core", ['workers','shaders'], function(){
+	gulp.src(paths.potreeCore)
+    .pipe(babel({
+      presets: ['es2015']
+    }))
+		.pipe(concat('potree-core.js'))
+		.pipe(size({showFiles: true}))
+		.pipe(gulp.dest('build/potree'))
+		.pipe(rename({suffix: '.min'}))
+		.pipe(uglify({preserveComments: 'some'}))
+		.pipe(size({showFiles: true}))
+		.pipe(gulp.dest('build/potree'));
+
+	gulp.src(paths.laslaz)
+		.pipe(concat('laslaz.js'))
+		.pipe(size({showFiles: true}))
+		.pipe(gulp.dest('build/potree'));
+
+	gulp.src(paths.html)
+		.pipe(gulp.dest('build/potree'));
+
+	return;
+});
+
 gulp.task('build', ['scripts']);
+gulp.task('build-core', ['scripts-core']);
 
 gulp.task('watch', function() {
     gulp.watch('src/**/*.js', ['scripts']);

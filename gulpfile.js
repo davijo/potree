@@ -233,7 +233,28 @@ gulp.task("scripts-core", ['workers','shaders'], function(){
 		.pipe(size({showFiles: true}))
 		.pipe(gulp.dest('build/potree'))
 		.pipe(rename({suffix: '.min'}))
-		.pipe(uglify({preserveComments: 'some'}))
+		.pipe(uglify({
+      mangle: true,
+      compress: {
+        sequences     : true,  // join consecutive statemets with the
+        properties    : true,  // optimize property access: a["foo"] ? a.foo
+        dead_code     : true,  // discard unreachable code
+        drop_debugger : true,  // discard debugger statements
+        unsafe        : false, // some unsafe optimizations (see below)
+        conditionals  : true,  // optimize if-s and conditional expressions
+        comparisons   : true,  // optimize comparisons
+        evaluate      : true,  // evaluate constant expressions
+        booleans      : true,  // optimize boolean expressions
+        loops         : true,  // optimize loops
+        unused        : true,  // drop unused variables/functions
+        hoist_funs    : true,  // hoist function declarations
+        hoist_vars    : false, // hoist variable declarations
+        if_return     : true,  // optimize if-s followed by return/continue
+        join_vars     : true,  // join var declarations
+        cascade       : true,  // try to cascade `right` into `left` in sequences
+        side_effects  : true  // drop side-effect-free statements
+      }
+    }))
 		.pipe(size({showFiles: true}))
 		.pipe(gulp.dest('build/potree'));
 
@@ -253,7 +274,7 @@ gulp.task('build-core', ['scripts-core']);
 
 gulp.task('watch', function() {
     gulp.watch('src/**/*.js', ['scripts']);
-})
+});
 
 // For development, it is now possible to use 'gulp webserver'
 // from the command line to start the server (default port is 8080)
@@ -285,7 +306,7 @@ var encodeWorker = function(fileName, varname, opt){
 
 		var joinedContents = buffer.join("");
 		//var content = varname + " = new Potree.WorkerManager(atob(\"" + new Buffer(joinedContents).toString('base64') + "\"));";
-		let content = joinedContents;
+		var content = joinedContents;
 
 		var joinedPath = path.join(firstFile.base, fileName);
 

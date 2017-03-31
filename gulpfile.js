@@ -9,7 +9,10 @@ var uglify = require('gulp-uglify');
 var gutil = require('gulp-util');
 var babel = require('gulp-babel');
 var through = require('through');
-var os = require('os');
+var jshint=require('gulp-jshint');
+
+
+//var os = require('os');
 var File = gutil.File;
 
 //We need this one for the in-built webserver
@@ -248,12 +251,33 @@ gulp.task("scripts-core", ['workers','shaders'], function(){
 	return;
 });
 
+gulp.task('linter', function(){
+	gulp.src(paths.potree)
+		.pipe(jshint())
+		.pipe(jshint.reporter('default'));
+	gulp.src(paths.laslaz)
+		.pipe(jshint())
+		.pipe(jshint.reporter('default'));
+	gulp.src(workers.laslaz)
+		.pipe(jshint())
+		.pipe(jshint.reporter('default'));
+	gulp.src(workers.LASDecoder)
+		.pipe(jshint())
+		.pipe(jshint.reporter('default'));
+	gulp.src(workers.BinaryDecoder)
+		.pipe(jshint())
+		.pipe(jshint.reporter('default'));
+	gulp.src(workers.GreyhoundBinaryDecoder)
+		.pipe(jshint())
+		.pipe(jshint.reporter('default'));
+});
+
 gulp.task('build', ['scripts']);
 gulp.task('build-core', ['scripts-core']);
 
 gulp.task('watch', function() {
     gulp.watch('src/**/*.js', ['scripts']);
-})
+});
 
 // For development, it is now possible to use 'gulp webserver'
 // from the command line to start the server (default port is 8080)

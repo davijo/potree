@@ -72,8 +72,7 @@ onmessage = function(event){
 	var bufferView = new Uint8Array(buffer);
 
 	var pBuff = new ArrayBuffer(numPoints*3*4);
-	//var cBuff = new ArrayBuffer(numPoints*3);
-	var cBuff = new ArrayBuffer(numPoints*3*4);
+	var cBuff = new ArrayBuffer(numPoints*3);
 	var iBuff = new ArrayBuffer(numPoints*4);
 	var clBuff = new ArrayBuffer(numPoints);
 	var rnBuff = new ArrayBuffer(numPoints);

@@ -21,19 +21,19 @@ Potree.LasLazLoader.prototype.load = function(node){
 	if(node.loaded){
 		return;
 	}
-	
+
 	//var url = node.pcoGeometry.octreeDir + "/" + node.name;
 	var pointAttributes = node.pcoGeometry.pointAttributes;
 	//var url = node.pcoGeometry.octreeDir + "/" + node.name + "." + pointAttributes.toLowerCase()
 
 	var url = node.getURL();
-	
+
 	if(this.version.equalOrHigher("1.4")){
 		url += "." + pointAttributes.toLowerCase();
 	}
-	
+
 	var scope = this;
-	
+
 	var xhr = new XMLHttpRequest();
 	xhr.open('GET', url, true);
 	xhr.responseType = 'arraybuffer';
@@ -49,7 +49,7 @@ Potree.LasLazLoader.prototype.load = function(node){
 			}
 		}
 	};
-	
+
 	xhr.send(null);
 };
 
@@ -60,7 +60,7 @@ Potree.LasLazLoader.progressCB = function(arg){
 Potree.LasLazLoader.prototype.parse = function loadData(node, buffer){
 	var lf = new LASFile(buffer);
 	var handler = new Potree.LasLazBatcher(node);
-	
+
 	return Promise.resolve(lf).cancellable().then(function(lf) {
 		return lf.open().then(function() {
 			lf.isOpen = true;
@@ -80,7 +80,7 @@ Potree.LasLazLoader.prototype.parse = function loadData(node, buffer){
 	}).then(function(v) {
 		var lf = v[0];
 		var header = v[1];
-		
+
 		var skip = 1;
 		var totalRead = 0;
 		var totalToRead = (skip <= 1 ? header.pointsCount : header.pointsCount / skip);
@@ -109,7 +109,7 @@ Potree.LasLazLoader.prototype.parse = function loadData(node, buffer){
 				}
 			});
 		};
-		
+
 		return reader();
 	}).then(function(v) {
 		var lf = v[0];
@@ -131,7 +131,7 @@ Potree.LasLazLoader.prototype.parse = function loadData(node, buffer){
 	}).catch(Promise.CancellationError, function(e) {
 		// If there was a cancellation, make sure the file is closed, if the file is open
 		// close and then fail
-		if (lf.isOpen) 
+		if (lf.isOpen)
 			return lf.close().then(function() {
 				lf.isOpen = false;
 				throw e;
@@ -149,26 +149,27 @@ Potree.LasLazLoader.prototype.handle = function(node, url){
 
 
 
-Potree.LasLazBatcher = function(node){	
+Potree.LasLazBatcher = function(node){
 	this.push = function(lasBuffer){
-		
+
 		let workerPath = Potree.scriptPath + "/workers/lasdecoder-worker.js";
 		let worker = Potree.workerPool.getWorker(workerPath);
-		
+
 		var mins = new THREE.Vector3(lasBuffer.mins[0], lasBuffer.mins[1], lasBuffer.mins[2]);
 		var maxs = new THREE.Vector3(lasBuffer.maxs[0], lasBuffer.maxs[1], lasBuffer.maxs[2]);
 		mins.add(node.pcoGeometry.offset);
 		maxs.add(node.pcoGeometry.offset);
-		
+
 		worker.onmessage = function(e){
 			var geometry = new THREE.BufferGeometry();
 			var numPoints = lasBuffer.pointsCount;
-			
+
 			var endsWith = function(str, suffix) {
 				return str.indexOf(suffix, str.length - suffix.length) !== -1;
 			};
-			
+
 			var positions = e.data.position;
+
 			var colors = new Uint8Array(e.data.color);
 			var intensities = e.data.intensity;
 			var classifications = new Uint8Array(e.data.classification);
@@ -177,16 +178,16 @@ Potree.LasLazBatcher = function(node){
 			var pointSourceIDs = new Uint16Array(e.data.pointSourceID);
 			var indices = new ArrayBuffer(numPoints*4);
 			var iIndices = new Uint32Array(indices);
-			
+
 			var box = new THREE.Box3();
-			
+
 			var fPositions = new Float32Array(positions);
-			for(var i = 0; i < numPoints; i++){				
+			for(var i = 0; i < numPoints; i++){
 				iIndices[i] = i;
-				
+
 				box.expandByPoint(new THREE.Vector3(fPositions[3*i+0], fPositions[3*i+1], fPositions[3*i+2]));
 			}
-			
+
 			geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
 			geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3, true));
 			geometry.addAttribute('intensity', new THREE.BufferAttribute(new Float32Array(intensities), 1));
@@ -196,25 +197,25 @@ Potree.LasLazBatcher = function(node){
 			geometry.addAttribute('pointSourceID', new THREE.BufferAttribute(pointSourceIDs, 1));
 			geometry.addAttribute('indices', new THREE.BufferAttribute(indices, 1));
 			geometry.addAttribute("normal", new THREE.BufferAttribute(new Float32Array(numPoints*3), 3));
-			
+
 			var tightBoundingBox = new THREE.Box3(
 				new THREE.Vector3().fromArray(e.data.tightBoundingBox.min),
 				new THREE.Vector3().fromArray(e.data.tightBoundingBox.max)
 			);
-			
+
 			geometry.boundingBox = new THREE.Box3(mins, maxs);
 			//geometry.boundingBox = tightBoundingBox;
 			//node.boundingBox = geometry.boundingBox;
 			node.tightBoundingBox = tightBoundingBox;
-			
+
 			node.geometry = geometry;
 			node.loaded = true;
 			node.loading = false;
 			node.pcoGeometry.numNodesLoading--;
-			
+
 			Potree.workerPool.returnWorker(workerPath, worker);
 		};
-		
+
 		var message = {
 			buffer: lasBuffer.arrayb,
 			numPoints: lasBuffer.pointsCount,

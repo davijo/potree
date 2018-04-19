@@ -64,7 +64,7 @@ class Enum{
 			}else{
 				value = {name: key, value: value};
 			}
-			
+
 			this[key] = new EnumItem(value);
 		}
 	}
@@ -78,7 +78,7 @@ class Enum{
 
 		throw new Error(`No enum for value: ${value}`);
 	}
-	
+
 };
 
 
@@ -424,7 +424,7 @@ Potree.updateVisibilityStructures = function(pointclouds, camera, renderer) {
 		let frustum = new THREE.Frustum();
 		let viewI = camera.matrixWorldInverse;
 		let world = pointcloud.matrixWorld;
-		
+
 		// use close near plane for frustum intersection
 		let frustumCam = camera.clone();
 		frustumCam.near = Math.min(camera.near, 0.1);
@@ -496,7 +496,7 @@ Potree.updateVisibility = function(pointclouds, camera, renderer){
 	let priorityQueue = s.priorityQueue;
 
 	let loadedToGPUThisFrame = 0;
-	
+
 	let domWidth = renderer.domElement.clientWidth;
 	let domHeight = renderer.domElement.clientHeight;
 
@@ -563,7 +563,7 @@ Potree.updateVisibility = function(pointclouds, camera, renderer){
 		}
 		if(false && pointcloud.material.clipBoxes.length > 0){
 
-			
+
 
 			//node.debug = false;
 
@@ -617,7 +617,7 @@ Potree.updateVisibility = function(pointclouds, camera, renderer){
 					visible = false;
 				}
 			}
-			
+
 
 		}
 
@@ -671,7 +671,7 @@ Potree.updateVisibility = function(pointclouds, camera, renderer){
 			let transformVersion = pointcloudTransformVersion.get(pointcloud);
 			if(node._transformVersion !== transformVersion.number){
 				node.sceneNode.updateMatrix();
-				node.sceneNode.matrixWorld.multiplyMatrices(pointcloud.matrixWorld, node.sceneNode.matrix);	
+				node.sceneNode.matrixWorld.multiplyMatrices(pointcloud.matrixWorld, node.sceneNode.matrix);
 				node._transformVersion = transformVersion.number;
 			}
 
@@ -694,31 +694,31 @@ Potree.updateVisibility = function(pointclouds, camera, renderer){
 		for (let i = 0; i < children.length; i++) {
 			let child = children[i];
 
-			let weight = 0; 
+			let weight = 0;
 			if(camera.isPerspectiveCamera){
 				let sphere = child.getBoundingSphere();
 				let center = sphere.center;
 				//let distance = sphere.center.distanceTo(camObjPos);
-				
+
 				let dx = camObjPos.x - center.x;
 				let dy = camObjPos.y - center.y;
 				let dz = camObjPos.z - center.z;
-				
+
 				let dd = dx * dx + dy * dy + dz * dz;
 				let distance = Math.sqrt(dd);
-				
-				
+
+
 				let radius = sphere.radius;
-				
+
 				let fov = (camera.fov * Math.PI) / 180;
 				let slope = Math.tan(fov / 2);
 				let projFactor = (0.5 * domHeight) / (slope * distance);
 				let screenPixelRadius = radius * projFactor;
-				
+
 				if(screenPixelRadius < pointcloud.minimumNodePixelSize){
 					continue;
 				}
-			
+
 				weight = screenPixelRadius;
 
 				if(distance - radius < 0){
@@ -726,7 +726,7 @@ Potree.updateVisibility = function(pointclouds, camera, renderer){
 				}
 			} else {
 				// TODO ortho visibility
-				let bb = child.getBoundingBox();				
+				let bb = child.getBoundingBox();
 				let distance = child.getBoundingSphere().center.distanceTo(camObjPos);
 				let diagonal = bb.max.clone().sub(bb.min).length();
 				weight = diagonal / distance;
@@ -788,7 +788,7 @@ Potree.XHRFactory = {
 };
 
 
-
+/*
 (function($){
 	$.fn.extend({
 		selectgroup: function(args = {}){
@@ -848,7 +848,7 @@ Potree.XHRFactory = {
 			});
 			elButtonContainer.find("label:first").each( (index, value) => {
 				$(value).css("border-radius", "4px 0px 0px 4px");
-				
+
 			});
 			elButtonContainer.find("label:last").each( (index, value) => {
 				$(value).css("border-radius", "0px 4px 4px 0px");
@@ -863,3 +863,4 @@ Potree.XHRFactory = {
 		}
 	});
 })(jQuery);
+*/

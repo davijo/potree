@@ -1,3 +1,5 @@
+/* eslint-disable */
+import * as THREE from 'three';
 
 THREE.EventDispatcher.prototype.removeEventListeners = function (type) {
 	if (this._listeners === undefined) {
@@ -34,7 +36,7 @@ Potree.version = {
 	suffix: ''
 };
 
-console.log('Potree ' + Potree.version.major + '.' + Potree.version.minor + Potree.version.suffix);
+//console.log('Potree ' + Potree.version.major + '.' + Potree.version.minor + Potree.version.suffix);
 
 Potree.pointBudget = 1 * 1000 * 1000;
 
@@ -11256,4 +11258,4 @@ export const PointCloudOctree = Potree.PointCloudOctree;
 export const updatePointClouds = Potree.updatePointClouds;
 export const PointCloudArena4D = Potree.PointCloudArena4D;
 export const Features = Potree.Features;
-export default new Potree();
+//export default new Potree();

@@ -1,9 +1,7 @@
-
-
 import {PointAttributeNames} from "./PointAttributes.js";
 import {Version} from "../Version.js";
 import {XHRFactory} from "../XHRFactory.js";
-
+import {scriptPath, workerPool/*, numNodesLoading*/} from '../Potree.js';
 
 export class BinaryLoader{
 
@@ -43,7 +41,7 @@ export class BinaryLoader{
 				}
 			}
 		};
-		
+
 		try {
 			xhr.send(null);
 		} catch (e) {
@@ -59,11 +57,10 @@ export class BinaryLoader{
 			node.numPoints = numPoints;
 		}
 
-		let workerPath = Potree.scriptPath + '/workers/BinaryDecoderWorker.js';
-		let worker = Potree.workerPool.getWorker(workerPath);
+		let workerPath = scriptPath + '/workers/BinaryDecoderWorker.js';
+		let worker = workerPool.getWorker(workerPath);
 
 		worker.onmessage = function (e) {
-
 			let data = e.data;
 			let buffers = data.attributeBuffers;
 			let tightBoundingBox = new THREE.Box3(
@@ -71,7 +68,7 @@ export class BinaryLoader{
 				new THREE.Vector3().fromArray(data.tightBoundingBox.max)
 			);
 
-			Potree.workerPool.returnWorker(workerPath, worker);
+			workerPool.returnWorker(workerPath, worker);
 
 			let geometry = new THREE.BufferGeometry();
 
@@ -121,7 +118,7 @@ export class BinaryLoader{
 			tightBoundingBox.min.set(0, 0, 0);
 
 			let numPoints = e.data.buffer.byteLength / pointAttributes.byteSize;
-			
+
 			node.numPoints = numPoints;
 			node.geometry = geometry;
 			node.mean = new THREE.Vector3(...data.mean);
@@ -146,6 +143,5 @@ export class BinaryLoader{
 		worker.postMessage(message, [message.buffer]);
 	};
 
-	
-}
 
+}

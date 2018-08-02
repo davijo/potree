@@ -1,0 +1,16 @@
+{
+  "presets": [
+    [
+      "@babel/preset-env", {
+        "targets": {
+          "browsers": [
+            "ie > 10"
+          ]
+        },
+        "modules": false,
+        "debug": true,
+        "useBuiltIns": "usage"
+      }
+    ]
+  ],
+}

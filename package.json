@@ -11,5 +11,14 @@
     "through": "~2.3.4"
   },
   "author": "Markus Schütz",
-  "license": "BSD-2-CLAUSE"
+  "license": "BSD-2-CLAUSE",
+  "devDependencies": {
+    "@babel/core": "^7.0.0-beta.55",
+    "@babel/plugin-external-helpers": "^7.0.0-beta.55",
+    "@babel/polyfill": "^7.0.0-beta.55",
+    "@babel/preset-env": "^7.0.0-beta.55",
+    "eslint-config-happiness": "^10.2.1",
+    "rollup": "^0.63.5",
+    "rollup-plugin-babel": "^4.0.0-beta.7"
+  }
 }

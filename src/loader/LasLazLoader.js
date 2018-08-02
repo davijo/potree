@@ -1,7 +1,6 @@
-
-
 import {Version} from "../Version.js";
 import {XHRFactory} from "../XHRFactory.js";
+import {scriptPath, workerPool} from '../Potree.js';
 
 /**
  * laslaz code taken and adapted from plas.io js-laslaz
@@ -67,14 +66,14 @@ export class LasLazLoader {
 		//
 		// invoke the laz decompress worker thousands of times to check for memory leaks
 		// until 2018/03/05, it tended to run out of memory at ~6230 invocations
-		// 
+		//
 		//
 		//lf.open()
 		//.then( msg => {
 		//	lf.isOpen = true;
 		//	return lf;
 		//}).catch( msg => {
-		//	console.log("failed to open file. :(");	
+		//	console.log("failed to open file. :(");
 		//}).then( lf => {
 		//	return lf.getHeader().then(function (h) {
 		//		return [lf, h];
@@ -89,7 +88,7 @@ export class LasLazLoader {
 
 		//		this.parse(node, buffer);
 		//	}).then (v => {
-		//		lf.close();	
+		//		lf.close();
 		//	});
 
 		//})
@@ -101,7 +100,7 @@ export class LasLazLoader {
 			lf.isOpen = true;
 			return lf;
 		}).catch( msg => {
-			console.log("failed to open file. :(");	
+			console.log("failed to open file. :(");
 		}).then( lf => {
 			return lf.getHeader().then(function (h) {
 				return [lf, h];
@@ -159,8 +158,8 @@ export class LasLazLoader {
 						throw e;
 					});
 				}
-				throw e;	
-			});	
+				throw e;
+			});
 		});
 	}
 
@@ -176,8 +175,8 @@ export class LasLazBatcher{
 	}
 
 	push (lasBuffer) {
-		let workerPath = Potree.scriptPath + '/workers/LASDecoderWorker.js';
-		let worker = Potree.workerPool.getWorker(workerPath);
+		let workerPath = scriptPath + '/workers/LASDecoderWorker.js';
+		let worker = workerPool.getWorker(workerPath);
 		let node = this.node;
 
 		worker.onmessage = (e) => {
@@ -221,7 +220,7 @@ export class LasLazBatcher{
 
 			//debugger;
 
-			Potree.workerPool.returnWorker(workerPath, worker);
+			workerPool.returnWorker(workerPath, worker);
 		};
 
 		let message = {

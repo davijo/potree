@@ -41,4 +41,30 @@ export default [
       }),
     ],
   },
+  {
+    input: 'src/workers/LASDecoderWorker.js',
+    output: {
+      file: 'build/LASDecoderWorker.es5.js',
+      format: 'cjs',
+      sourcemap: true,
+    },
+    plugins: [
+      babel({
+        exclude: 'node_modules/**',
+      }),
+    ],
+  },
+  {
+    input: 'src/workers/LASLAZWorker.js',
+    output: {
+      file: 'build/LASLAZWorker.es5.js',
+      format: 'cjs',
+      sourcemap: true,
+    },
+    plugins: [
+      babel({
+        exclude: 'node_modules/**',
+      }),
+    ],
+  },
 ];

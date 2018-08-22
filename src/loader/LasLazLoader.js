@@ -1,6 +1,6 @@
 import {Version} from "../Version.js";
 import {XHRFactory} from "../XHRFactory.js";
-import {scriptPath, workerPool} from '../Potree.js';
+import {workerPool} from '../PotreeCore.js';
 
 /**
  * laslaz code taken and adapted from plas.io js-laslaz
@@ -175,7 +175,9 @@ export class LasLazBatcher{
 	}
 
 	push (lasBuffer) {
-		let workerPath = scriptPath + '/workers/LASDecoderWorker.js';
+		// Using a global for now. Needs to be scoped in the future.
+		let workerPath = Potree.workerSrc + '/workers/LASDecoderWorker.js';
+
 		let worker = workerPool.getWorker(workerPath);
 		let node = this.node;
 

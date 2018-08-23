@@ -1,7 +1,8 @@
 import {PointAttributeNames} from "./PointAttributes.js";
 import {Version} from "../Version.js";
 import {XHRFactory} from "../XHRFactory.js";
-import {workerPool} from '../PotreeCore.js';
+//import {workerPool} from '../PotreeCore.js';
+import workerPool from "../WorkerPool";
 
 export class BinaryLoader{
 

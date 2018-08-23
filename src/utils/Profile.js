@@ -1,5 +1,4 @@
-
-import {Utils} from "../utils.js";
+import getMousePointCloudIntersection from "./MousePicking";
 
 export class Profile extends THREE.Object3D{
 
@@ -110,7 +109,7 @@ export class Profile extends THREE.Object3D{
 
 		{ // event listeners
 			let drag = (e) => {
-				let I = Utils.getMousePointCloudIntersection(
+				let I = getMousePointCloudIntersection(
 					e.drag.end, 
 					e.viewer.scene.getActiveCamera(), 
 					e.viewer, 

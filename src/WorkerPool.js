@@ -25,3 +25,5 @@ export class WorkerPool{
 };
 
 //Potree.workerPool = new Potree.WorkerPool();
+
+export default new WorkerPool();

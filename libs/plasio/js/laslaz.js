@@ -205,8 +205,8 @@
 	//
 	var LAZLoader = function(arraybuffer) {
 		this.arraybuffer = arraybuffer;
-		
-		let workerPath = Potree.scriptPath + "/workers/LASLAZWorker.js";
+		// Reference global
+		let workerPath = Potree.workerSrc + "/workers/LASLAZWorker.js";
 		this.ww = Potree.workerPool.getWorker(workerPath);
 
 		this.nextCB = null;
@@ -274,7 +274,7 @@
 
 		return new Promise(function(res, rej) {
 			o.dorr({type:'close'}, function(r) {
-				let workerPath = Potree.scriptPath + "/workers/LASLAZWorker.js";
+				let workerPath = Potree.workerSrc + "/workers/LASLAZWorker.js";
 				Potree.workerPool.returnWorker(workerPath, o.ww);
 			
 				if (r.status !== 1)

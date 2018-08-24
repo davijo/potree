@@ -55,7 +55,7 @@ export default [
     ],
   },
   {
-    input: 'src/workers/LASLAZWorker.js',
+    input: 'build/potree/workers/LASLAZWorker.js',
     output: {
       file: 'build/LASLAZWorker.es5.js',
       format: 'cjs',

@@ -26,6 +26,10 @@ export class LasLazLoader {
 
 	}
 
+	disposeWorkers() {
+		workerPool.dispose();
+	}
+
 	load (node) {
 		if (node.loaded) {
 			return;

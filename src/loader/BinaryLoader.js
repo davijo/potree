@@ -17,6 +17,10 @@ export class BinaryLoader{
 		this.scale = scale;
 	}
 
+	disposeWorkers() {
+		workerPool.dispose();
+	}
+	
 	load(node){
 		if (node.loaded) {
 			return;

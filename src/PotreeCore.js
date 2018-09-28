@@ -66,9 +66,9 @@ import {LRU} from "./LRU";
 import {POCLoader} from "./loader/POCLoader";
 import {GreyhoundLoader} from "./loader/GreyhoundLoader";
 import {PointCloudOctree} from "./PointCloudOctree";
-import {WorkerPool} from "./WorkerPool";
+//import {WorkerPool} from "./WorkerPool";
 
-export const workerPool = new WorkerPool();
+//export const workerPool = new WorkerPool();
 
 export const version = {
 	major: 1,

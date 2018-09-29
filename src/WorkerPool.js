@@ -24,6 +24,8 @@ export class WorkerPool {
 	}
 
 	dispose() {
+		//console.log('WorkerPool: disposing', this.workers);
+		
 		let keys = [];
 		for (let key in this.workers) {
 			if (!this.workers.hasOwnProperty(key)) {
@@ -31,9 +33,12 @@ export class WorkerPool {
 			}
 			keys.push(key);
 		}
-
+		//console.log('WorkerPool: keys', keys);
+		
 		for (let key of keys) {
 			for (let worker of this.workers[key]) {
+				//console.log('WorkerPool: terminating', worker);
+				
 				worker.terminate();
 				worker = undefined;
 			}

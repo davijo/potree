@@ -2,6 +2,19 @@
 import {ClipTask, ClipMethod} from "./defines";
 import {Box3Helper} from "./utils/Box3Helper";
 
+let _pointcloudTransformVersion = undefined;
+
+export const clearPointCloudTransformVersion = () => {
+	//console.log('clearPointCloudTransformVersion', _pointcloudTransformVersion);
+	
+	if (_pointcloudTransformVersion) {
+		_pointcloudTransformVersion.clear();
+		_pointcloudTransformVersion = undefined;
+	}
+
+	exports.lru.dispose();
+};
+
 export function updatePointClouds(pointclouds, camera, renderer){
 
 	for (let pointcloud of pointclouds) {
@@ -125,10 +138,16 @@ export function updateVisibility(pointclouds, camera, renderer){
 
 	// check if pointcloud has been transformed
 	// some code will only be executed if changes have been detected
+	/*
 	if(!Potree._pointcloudTransformVersion){
 		Potree._pointcloudTransformVersion = new Map();
 	}
 	let pointcloudTransformVersion = Potree._pointcloudTransformVersion;
+	*/
+	if(!_pointcloudTransformVersion){
+		_pointcloudTransformVersion = new Map();
+	}
+	let pointcloudTransformVersion = _pointcloudTransformVersion;
 	for(let pointcloud of pointclouds){
 
 		if(!pointcloud.visible){

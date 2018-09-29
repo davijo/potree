@@ -147,6 +147,12 @@ class LRU{
 		}
 	}
 
+	dispose() {
+		//console.log('LRU.dispose');
+		
+		this.items = {};
+	}
+
 	disposeDescendants(node){
 		let stack = [];
 		stack.push(node);

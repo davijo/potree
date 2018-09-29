@@ -106,6 +106,9 @@ let resourcePath = scriptPath + '/resources';
 
 export {scriptPath, resourcePath};
 
+export const dispose = () => {
+	lru = undefined;
+};
 
 export function loadPointCloud(path, name, callback){
 	let loaded = function(pointcloud){

@@ -8,6 +8,11 @@ class LRUItem{
 		this.node = node;
 	}
 
+	dispose() {
+		this.previous = undefined;
+		this.next = undefined;
+		this.node = undefined;
+	}
 }
 
 /**
@@ -149,7 +154,9 @@ class LRU{
 
 	dispose() {
 		//console.log('LRU.dispose');
+		this.first.dispose();
 		this.first = undefined;
+		this.last.dispose();
 		this.last = undefined;
 		this.items = {};
 	}

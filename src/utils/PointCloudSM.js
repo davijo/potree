@@ -27,6 +27,16 @@ export class PointCloudSM{
 		this.threeRenderer.clearTarget(this.target, true, true, true);
 	}
 
+	dispose() {
+		this.threeRenderer.dispose();
+		this.threeRenderer = undefined;
+		this.potreeRenderer = undefined;
+		this.target.depthTexture.dispose();
+		this.target.depthTexture = undefined;
+		this.target.dispose();
+		this.target = undefined;
+	}
+
 	setLight(light){
 		this.light = light;
 

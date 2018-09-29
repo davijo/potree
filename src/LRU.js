@@ -149,7 +149,8 @@ class LRU{
 
 	dispose() {
 		//console.log('LRU.dispose');
-		
+		this.first = undefined;
+		this.last = undefined;
 		this.items = {};
 	}
 

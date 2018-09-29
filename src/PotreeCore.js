@@ -106,7 +106,8 @@ let resourcePath = scriptPath + '/resources';
 
 export {scriptPath, resourcePath};
 
-export const dispose = () => {
+export const disposePotree = () => {
+	lru.dispose();
 	lru = undefined;
 };
 

@@ -12,7 +12,7 @@ export const clearPointCloudTransformVersion = () => {
 		_pointcloudTransformVersion = undefined;
 	}
 
-	exports.lru.dispose();
+	//exports.lru.dispose();
 };
 
 export function updatePointClouds(pointclouds, camera, renderer){

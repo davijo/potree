@@ -1,6 +1,8 @@
 
 import {ClipTask, ClipMethod} from "./defines";
 import {Box3Helper} from "./utils/Box3Helper";
+import {LRU} from './LRU';
+let lru = new LRU();
 
 let _pointcloudTransformVersion = undefined;
 
@@ -13,6 +15,7 @@ export const clearPointCloudTransformVersion = () => {
 	}
 
 	//exports.lru.dispose();
+	lru.dispose();
 };
 
 export function updatePointClouds(pointclouds, camera, renderer){
@@ -39,7 +42,8 @@ export function updatePointClouds(pointclouds, camera, renderer){
 		pointcloud.updateVisibleBounds();
 	}
 
-	exports.lru.freeMemory();
+	//exports.lru.freeMemory();
+	lru.freeMemory();
 
 	return result;
 };
@@ -333,7 +337,8 @@ export function updateVisibility(pointclouds, camera, renderer){
 		}
 
 		if (node.isTreeNode()) {
-			exports.lru.touch(node.geometryNode);
+			//exports.lru.touch(node.geometryNode);
+			lru.touch(node.geometryNode);
 			node.sceneNode.visible = true;
 			node.sceneNode.material = pointcloud.material;
 

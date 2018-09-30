@@ -3,8 +3,8 @@
 class LRUItem{
 
 	constructor(node){
-		this.previous = null;
-		this.next = null;
+		this.previous = undefined;
+		this.next = undefined;
 		this.node = node;
 	}
 
@@ -23,9 +23,9 @@ class LRU{
 
 	constructor(){
 		// the least recently used item
-		this.first = null;
+		this.first = undefined;
 		// the most recently used item
-		this.last = null;
+		this.last = undefined;
 		// a list of all items in the lru list
 		this.items = {};
 		this.elements = 0;
@@ -37,7 +37,7 @@ class LRU{
 	}
 
 	contains(node){
-		return this.items[node.id] == null;
+		return !!this.items[node.id];
 	}
 
 	touch(node){
@@ -46,43 +46,44 @@ class LRU{
 		}
 
 		let item;
-		if (this.items[node.id] == null) {
+		if (!this.items[node.id]) {
 			// add to list
 			item = new LRUItem(node);
 			item.previous = this.last;
 			this.last = item;
-			if (item.previous !== null) {
+			if (item.previous) {
 				item.previous.next = item;
 			}
 
 			this.items[node.id] = item;
 			this.elements++;
 
-			if (this.first === null) {
+			if (!this.first) {
 				this.first = item;
 			}
 			this.numPoints += node.numPoints;
 		} else {
 			// update in list
 			item = this.items[node.id];
-			if (item.previous === null) {
+			//item = item || {};
+			if (!item.previous) {
 				// handle touch on first element
-				if (item.next !== null) {
+				if (item.next) {
 					this.first = item.next;
-					this.first.previous = null;
+					this.first.previous = undefined;
 					item.previous = this.last;
-					item.next = null;
+					item.next = undefined;
 					this.last = item;
 					item.previous.next = item;
 				}
-			} else if (item.next === null) {
+			} else if (!item.next) {
 				// handle touch on last element
 			} else {
 				// handle touch on any other element
 				item.previous.next = item.next;
 				item.next.previous = item.previous;
 				item.previous = this.last;
-				item.next = null;
+				item.next = undefined;
 				this.last = item;
 				item.previous.next = item;
 			}
@@ -93,16 +94,16 @@ class LRU{
 		let lruItem = this.items[node.id];
 		if (lruItem) {
 			if (this.elements === 1) {
-				this.first = null;
-				this.last = null;
+				this.first = undefined;
+				this.last = undefined;
 			} else {
 				if (!lruItem.previous) {
 					this.first = lruItem.next;
-					this.first.previous = null;
+					this.first.previous = undefined;
 				}
 				if (!lruItem.next) {
 					this.last = lruItem.previous;
-					this.last.next = null;
+					this.last.next = undefined;
 				}
 				if (lruItem.previous && lruItem.next) {
 					lruItem.previous.next = lruItem.next;
@@ -117,8 +118,8 @@ class LRU{
 	}
 
 	getLRUItem(){
-		if (this.first === null) {
-			return null;
+		if (!this.first) {
+			return undefined;
 		}
 		let lru = this.first;
 
@@ -128,9 +129,9 @@ class LRU{
 	toString(){
 		let string = '{ ';
 		let curr = this.first;
-		while (curr !== null) {
+		while (curr) {
 			string += curr.node.id;
-			if (curr.next !== null) {
+			if (curr.next) {
 				string += ', ';
 			}
 			curr = curr.next;
@@ -159,6 +160,8 @@ class LRU{
 		this.last.dispose();
 		this.last = undefined;
 		this.items = {};
+		this.elements = 0;
+		this.numPoints = 0;
 	}
 
 	disposeDescendants(node){
@@ -185,4 +188,5 @@ class LRU{
 
 }
 
-export {LRU, LRUItem};
+//export {LRU, LRUItem};
+export {LRU};

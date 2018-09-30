@@ -62,7 +62,7 @@ import "./extensions/Ray.js";
 
 //import {PointColorType} from "./defines";
 //import {Enum} from "./Enum";
-import {LRU} from "./LRU";
+//import {LRU} from "./LRU";
 import {POCLoader} from "./loader/POCLoader";
 import {GreyhoundLoader} from "./loader/GreyhoundLoader";
 import {PointCloudOctree} from "./PointCloudOctree";
@@ -76,7 +76,7 @@ export const version = {
 	suffix: ''
 };
 
-export let lru = new LRU();
+//export let lru = new LRU();
 
 console.log('PotreeCore ' + version.major + '.' + version.minor + version.suffix);
 
@@ -107,8 +107,8 @@ let resourcePath = scriptPath + '/resources';
 export {scriptPath, resourcePath};
 
 export const disposePotree = () => {
-	lru.dispose();
-	lru = undefined;
+	//lru.dispose();
+	//lru = undefined;
 };
 
 export function loadPointCloud(path, name, callback){

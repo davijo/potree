@@ -20,7 +20,15 @@ export class WorkerPool {
 	}
 
 	returnWorker(url, worker) {
-		this.workers[url].push(worker);
+		if (this.workers[url]) {
+			// In case there's still a worker out in the wild and dispose has been called
+			this.workers[url].push(worker);
+		} else {
+			if (worker.terminate) {
+				worker.terminate();
+				worker = undefined;
+			}
+		}
 	}
 
 	dispose() {

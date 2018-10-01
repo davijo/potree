@@ -155,10 +155,14 @@ class LRU{
 
 	dispose() {
 		//console.log('LRU.dispose');
-		this.first.dispose();
-		this.first = undefined;
-		this.last.dispose();
-		this.last = undefined;
+		if (this.first) {
+			this.first.dispose();
+			this.first = undefined;
+		}
+		if (this.last) {
+			this.last.dispose();
+			this.last = undefined;
+		}
 		this.items = {};
 		this.elements = 0;
 		this.numPoints = 0;

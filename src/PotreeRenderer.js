@@ -270,7 +270,8 @@ class Shader {
 			}
 
 			// uniform blocks
-			if(gl instanceof WebGL2RenderingContext){ 
+			if(typeof WebGL2RenderingContext !== 'undefined' && 
+				gl instanceof WebGL2RenderingContext){ 
 				let numBlocks = gl.getProgramParameter(program, gl.ACTIVE_UNIFORM_BLOCKS);
 
 				for (let i = 0; i < numBlocks; i++) {

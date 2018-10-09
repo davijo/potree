@@ -224,6 +224,12 @@ export class PointCloudMaterial extends THREE.RawShaderMaterial {
 	getDefines () {
 		let defines = [];
 
+		if (this._useClipBox) {
+			defines.push('#define num_clipboxes ' + this.clipBoxes.length);
+			console.log('clipBoxes', this.clipBoxes);
+			
+		}
+
 		if (this.pointSizeType === PointSizeType.FIXED) {
 			defines.push('#define fixed_point_size');
 		} else if (this.pointSizeType === PointSizeType.ATTENUATED) {
@@ -308,11 +314,7 @@ export class PointCloudMaterial extends THREE.RawShaderMaterial {
 
 		this.uniforms.clipBoxCount.value = this.clipBoxes.length;
 		this.clipBoxes = clipBoxes;
-
-		if (doUpdate) {
-			this.updateShaderSource();
-		}
-
+		
 		this.uniforms.clipBoxes.value = new Float32Array(this.clipBoxes.length * 16);
 
 		for (let i = 0; i < this.clipBoxes.length; i++) {
@@ -468,6 +470,8 @@ export class PointCloudMaterial extends THREE.RawShaderMaterial {
 	}
 
 	set useClipBox (value) {
+		console.log('useClipBox', value);
+		
 		if (this._useClipBox !== value) {
 			this._useClipBox = value;
 			this.updateShaderSource();

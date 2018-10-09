@@ -1,10 +1,11 @@
-
+import {Utils} from './utils';
 import {ClipTask, ClipMethod} from "./defines";
 import {Box3Helper} from "./utils/Box3Helper";
 import {LRU} from './LRU';
 let lru = new LRU();
 
 let _pointcloudTransformVersion = undefined;
+const utils = new Utils();
 
 export const clearPointCloudTransformVersion = () => {
 	//console.log('clearPointCloudTransformVersion', _pointcloudTransformVersion);
@@ -115,8 +116,8 @@ export function updateVisibilityStructures(pointclouds, camera, renderer) {
 	};
 };
 
-
-export function updateVisibility(pointclouds, camera, renderer){
+let doneOnce = false;
+export function updateVisibility(pointclouds, camera, renderer, debugScene){
 
 	let numVisibleNodes = 0;
 	let numVisiblePoints = 0;
@@ -205,12 +206,13 @@ export function updateVisibility(pointclouds, camera, renderer){
 
 		
 
-
+		/*
 		if(!window.warned125){
 			console.log("TODO");
 			window.warned125 = true;
 		}
-
+		*/
+		
 		let clipBoxes = pointcloud.material.clipBoxes;
 		if(true && clipBoxes.length > 0){
 
@@ -224,9 +226,9 @@ export function updateVisibility(pointclouds, camera, renderer){
 			//}
 
 			for(let clipBox of clipBoxes){
-
+				
 				let pcWorldInverse = new THREE.Matrix4().getInverse(pointcloud.matrixWorld);
-				let toPCObject = pcWorldInverse.multiply(clipBox.box.matrixWorld);
+				//let toPCObject = pcWorldInverse.multiply(clipBox.box.matrixWorld);
 
 				let px = new THREE.Vector3(+0.5, 0, 0).applyMatrix4(pcWorldInverse);
 				let nx = new THREE.Vector3(-0.5, 0, 0).applyMatrix4(pcWorldInverse);
@@ -249,21 +251,20 @@ export function updateVisibility(pointclouds, camera, renderer){
 				let pzPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(pzN, pz);
 				let nzPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(nzN, nz);
 
-				//if(window.debugdraw !== undefined && window.debugdraw === true && node.name === "r60"){
+				if (debugScene && !doneOnce) {
+					utils.debugPlane(debugScene, pxPlane, 1, 0xFF0000);
+					utils.debugPlane(debugScene, nxPlane, 1, 0x990000);
+					utils.debugPlane(debugScene, pyPlane, 1, 0x00FF00);
+					utils.debugPlane(debugScene, nyPlane, 1, 0x009900);
+					utils.debugPlane(debugScene, pzPlane, 1, 0x0000FF);
+					utils.debugPlane(debugScene, nzPlane, 1, 0x000099);
 
-				//	Potree.utils.debugPlane(viewer.scene.scene, pxPlane, 1, 0xFF0000);
-				//	Potree.utils.debugPlane(viewer.scene.scene, nxPlane, 1, 0x990000);
-				//	Potree.utils.debugPlane(viewer.scene.scene, pyPlane, 1, 0x00FF00);
-				//	Potree.utils.debugPlane(viewer.scene.scene, nyPlane, 1, 0x009900);
-				//	Potree.utils.debugPlane(viewer.scene.scene, pzPlane, 1, 0x0000FF);
-				//	Potree.utils.debugPlane(viewer.scene.scene, nzPlane, 1, 0x000099);
+					//utils.debugBox(debugScene, box, new THREE.Matrix4(), 0x00FF00);
+					//utils.debugBox(debugScene, box, pointcloud.matrixWorld, 0xFF0000);
+					utils.debugBox(debugScene, clipBox.box.boundingBox, clipBox.box.matrixWorld, 0xFF0000);
 
-				//	Potree.utils.debugBox(viewer.scene.scene, box, new THREE.Matrix4(), 0x00FF00);
-				//	Potree.utils.debugBox(viewer.scene.scene, box, pointcloud.matrixWorld, 0xFF0000);
-				//	Potree.utils.debugBox(viewer.scene.scene, clipBox.box.boundingBox, clipBox.box.matrixWorld, 0xFF0000);
-
-				//	window.debugdraw = false;
-				//}
+					doneOnce = true;
+				}
 
 				let frustum = new THREE.Frustum(pxPlane, nxPlane, pyPlane, nyPlane, pzPlane, nzPlane);
 				let intersects = frustum.intersectsBox(box);

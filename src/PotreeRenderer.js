@@ -895,7 +895,6 @@ export class Renderer {
 	}
 
 	renderOctree(octree, nodes, camera, target, params = {}){
-
 		let gl = this.gl;
 
 		let material = params.material ? params.material : octree.material;
@@ -952,11 +951,10 @@ export class Renderer {
 				let defines = [
 					`#define num_shadowmaps ${shadowMaps.length}`,
 					`#define num_snapshots ${numSnapshots}`,
-					`#define num_clipboxes ${numClipBoxes}`,
+					//`#define num_clipboxes ${numClipBoxes}`,
 					`#define num_clipspheres ${numClipSpheres}`,
 					`#define num_clippolygons ${numClipPolygons}`,
 				];
-
 
 				if(octree.pcoGeometry.root.isLoaded()){
 					let attributes = octree.pcoGeometry.root.geometry.attributes;

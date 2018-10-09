@@ -677,6 +677,7 @@ void doClipping(){
 			inside = inside && -0.5 <= clipPosition.z && clipPosition.z <= 0.5;
 
 			insideCount = insideCount + (inside ? 1 : 0);
+
 			clipVolumesCount++;
 		}	
 	#endif
@@ -691,6 +692,9 @@ void doClipping(){
 	#endif
 
 	bool insideAny = insideCount > 0;
+	if (insideCount > 0) {
+		insideAny = true;
+	}
 	bool insideAll = (clipVolumesCount > 0) && (clipVolumesCount == insideCount);
 
 	if(clipMethod == CLIPMETHOD_INSIDE_ANY){

@@ -212,7 +212,7 @@ export function updateVisibility(pointclouds, camera, renderer, debugScene){
 			window.warned125 = true;
 		}
 		*/
-		
+		/*
 		let clipBoxes = pointcloud.material.clipBoxes;
 		if(true && clipBoxes.length > 0){
 
@@ -300,6 +300,7 @@ export function updateVisibility(pointclouds, camera, renderer, debugScene){
 			
 
 		}
+		*/
 
 		// visible = ["r", "r0", "r06", "r060"].includes(node.name);
 		// visible = ["r"].includes(node.name);

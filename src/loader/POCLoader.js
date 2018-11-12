@@ -10,12 +10,16 @@ import {PointAttribute, PointAttributes} from "./PointAttributes.js";
 
 export class POCLoader {
 
-	static load(url, callback){
+	static load(url, callback, opts = {}){
+		console.log('POCLoader.load', url, callback, opts);
+		
 		try {
+			const accessToken = opts.accessToken !== undefined ?
+				'?' + opts.accessToken : '';
 			let pco = new PointCloudOctreeGeometry();
 			pco.url = url;
 			let xhr = XHRFactory.createXMLHttpRequest();
-			xhr.open('GET', url, true);
+			xhr.open('GET', url + accessToken, true);
 
 			xhr.onreadystatechange = function () {
 				if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 0)) {
@@ -60,9 +64,13 @@ export class POCLoader {
 					pco.tightBoundingSphere = tightBoundingBox.getBoundingSphere(new THREE.Sphere());
 					pco.offset = offset;
 					if (fMno.pointAttributes === 'LAS') {
-						pco.loader = new LasLazLoader(fMno.version);
+						pco.loader = new LasLazLoader(fMno.version, {
+							accessToken: opts.accessToken,
+						});
 					} else if (fMno.pointAttributes === 'LAZ') {
-						pco.loader = new LasLazLoader(fMno.version);
+						pco.loader = new LasLazLoader(fMno.version, {
+							accessToken: opts.accessToken,
+						});
 					} else {
 						pco.loader = new BinaryLoader(fMno.version, boundingBox, fMno.scale);
 						pco.pointAttributes = new PointAttributes(pco.pointAttributes);

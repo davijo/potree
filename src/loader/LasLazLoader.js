@@ -14,12 +14,17 @@ import workerPool from "../WorkerPool";
 
 export class LasLazLoader {
 
-	constructor (version) {
+	constructor (version, opts = {}) {
+		console.log('LasLazLoader', version, opts);
+		
 		if (typeof (version) === 'string') {
 			this.version = new Version(version);
 		} else {
 			this.version = version;
 		}
+
+		this.accessToken = opts.accessToken !== undefined ?
+		 	'?' + opts.accessToken : '';
 	}
 
 	static progressCB () {
@@ -44,7 +49,7 @@ export class LasLazLoader {
 		}
 
 		let xhr = XHRFactory.createXMLHttpRequest();
-		xhr.open('GET', url, true);
+		xhr.open('GET', url + this.accessToken, true);
 		xhr.responseType = 'arraybuffer';
 		xhr.overrideMimeType('text/plain; charset=x-user-defined');
 		xhr.onreadystatechange = () => {

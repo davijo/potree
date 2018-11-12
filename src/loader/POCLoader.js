@@ -11,8 +11,6 @@ import {PointAttribute, PointAttributes} from "./PointAttributes.js";
 export class POCLoader {
 
 	static load(url, callback, opts = {}){
-		console.log('POCLoader.load', url, callback, opts);
-		
 		try {
 			const accessToken = opts.accessToken !== undefined ?
 				'?' + opts.accessToken : '';

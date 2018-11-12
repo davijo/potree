@@ -15,8 +15,6 @@ import workerPool from "../WorkerPool";
 export class LasLazLoader {
 
 	constructor (version, opts = {}) {
-		console.log('LasLazLoader', version, opts);
-		
 		if (typeof (version) === 'string') {
 			this.version = new Version(version);
 		} else {

@@ -79,7 +79,7 @@ export class POCLoader {
 					{ // load root
 						let name = 'r';
 
-						let root = new PointCloudOctreeGeometryNode(name, pco, boundingBox);
+						let root = new PointCloudOctreeGeometryNode(name, pco, boundingBox, opts.accessToken);
 						root.level = 0;
 						root.hasChildren = true;
 						root.spacing = pco.spacing;
@@ -105,7 +105,7 @@ export class POCLoader {
 							//let boundingBox = POCLoader.createChildAABB(parentNode.boundingBox, index);
 							let boundingBox = Utils.createChildAABB(parentNode.boundingBox, index);
 
-							let node = new PointCloudOctreeGeometryNode(name, pco, boundingBox);
+							let node = new PointCloudOctreeGeometryNode(name, pco, boundingBox, opts.accessToken);
 							node.level = level;
 							node.numPoints = numPoints;
 							node.spacing = pco.spacing / Math.pow(2, level);

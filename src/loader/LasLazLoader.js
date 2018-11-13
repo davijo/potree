@@ -21,8 +21,7 @@ export class LasLazLoader {
 			this.version = version;
 		}
 
-		this.accessToken = opts.accessToken !== undefined ?
-		 	'?' + opts.accessToken : '';
+		this.accessToken = opts.accessToken || '';
 	}
 
 	static progressCB () {

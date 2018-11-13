@@ -38,9 +38,12 @@ export class PointCloudOctreeGeometryNode extends PointCloudTreeNode{
 		this.loaded = false;
 		this.oneTimeDisposeHandlers = [];
 
-		this.accessToken = '';
-		if (accessToken !== undefined && accessToken.length > 0) {
-			this.accessToken = '?' + accessToken;
+		if (accessToken === undefined) {
+			this.accessToken = '';
+		} else {
+			this.accessToken = accessToken.length > 0 ?
+				accessToken.startsWith('?') ?
+					accessToken : '?' + accessToken : '';
 		}
 	}
 

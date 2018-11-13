@@ -12,8 +12,15 @@ export class POCLoader {
 
 	static load(url, callback, opts = {}){
 		try {
-			const accessToken = opts.accessToken !== undefined ?
-				'?' + opts.accessToken : '';
+			let accessToken = '';
+			if (opts.accessToken === undefined) {
+				accessToken = '';
+			} else {
+				accessToken = opts.accessToken.length > 0 ?
+					opts.accessToken.startsWith('?') ?
+						opts.accessToken : '?' + opts.accessToken : '';
+			}
+
 			let pco = new PointCloudOctreeGeometry();
 			pco.url = url;
 			let xhr = XHRFactory.createXMLHttpRequest();
@@ -63,11 +70,11 @@ export class POCLoader {
 					pco.offset = offset;
 					if (fMno.pointAttributes === 'LAS') {
 						pco.loader = new LasLazLoader(fMno.version, {
-							accessToken: opts.accessToken,
+							accessToken,
 						});
 					} else if (fMno.pointAttributes === 'LAZ') {
 						pco.loader = new LasLazLoader(fMno.version, {
-							accessToken: opts.accessToken,
+							accessToken,
 						});
 					} else {
 						pco.loader = new BinaryLoader(fMno.version, boundingBox, fMno.scale);
@@ -79,7 +86,7 @@ export class POCLoader {
 					{ // load root
 						let name = 'r';
 
-						let root = new PointCloudOctreeGeometryNode(name, pco, boundingBox, opts.accessToken);
+						let root = new PointCloudOctreeGeometryNode(name, pco, boundingBox, accessToken);
 						root.level = 0;
 						root.hasChildren = true;
 						root.spacing = pco.spacing;
@@ -105,7 +112,7 @@ export class POCLoader {
 							//let boundingBox = POCLoader.createChildAABB(parentNode.boundingBox, index);
 							let boundingBox = Utils.createChildAABB(parentNode.boundingBox, index);
 
-							let node = new PointCloudOctreeGeometryNode(name, pco, boundingBox, opts.accessToken);
+							let node = new PointCloudOctreeGeometryNode(name, pco, boundingBox, accessToken);
 							node.level = level;
 							node.numPoints = numPoints;
 							node.spacing = pco.spacing / Math.pow(2, level);

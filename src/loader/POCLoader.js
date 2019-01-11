@@ -12,19 +12,19 @@ export class POCLoader {
 
 	static load(url, callback, opts = {}){
 		try {
-			let accessToken = '';
-			if (opts.accessToken === undefined) {
-				accessToken = '';
+			let queryString = '';
+			if (opts.queryString === undefined) {
+				queryString = '';
 			} else {
-				accessToken = opts.accessToken.length > 0 ?
-					opts.accessToken.startsWith('?') ?
-						opts.accessToken : '?' + opts.accessToken : '';
+				queryString = opts.queryString.length > 0 ?
+					opts.queryString.startsWith('?') ?
+						opts.queryString : '?' + opts.queryString : '';
 			}
 
 			let pco = new PointCloudOctreeGeometry();
 			pco.url = url;
 			let xhr = XHRFactory.createXMLHttpRequest();
-			xhr.open('GET', url + accessToken, true);
+			xhr.open('GET', url + queryString, true);
 
 			xhr.onreadystatechange = function () {
 				if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 0)) {
@@ -70,11 +70,11 @@ export class POCLoader {
 					pco.offset = offset;
 					if (fMno.pointAttributes === 'LAS') {
 						pco.loader = new LasLazLoader(fMno.version, {
-							accessToken,
+							queryString,
 						});
 					} else if (fMno.pointAttributes === 'LAZ') {
 						pco.loader = new LasLazLoader(fMno.version, {
-							accessToken,
+							queryString,
 						});
 					} else {
 						pco.loader = new BinaryLoader(fMno.version, boundingBox, fMno.scale);
@@ -86,7 +86,7 @@ export class POCLoader {
 					{ // load root
 						let name = 'r';
 
-						let root = new PointCloudOctreeGeometryNode(name, pco, boundingBox, accessToken);
+						let root = new PointCloudOctreeGeometryNode(name, pco, boundingBox, queryString);
 						root.level = 0;
 						root.hasChildren = true;
 						root.spacing = pco.spacing;
@@ -112,7 +112,7 @@ export class POCLoader {
 							//let boundingBox = POCLoader.createChildAABB(parentNode.boundingBox, index);
 							let boundingBox = Utils.createChildAABB(parentNode.boundingBox, index);
 
-							let node = new PointCloudOctreeGeometryNode(name, pco, boundingBox, accessToken);
+							let node = new PointCloudOctreeGeometryNode(name, pco, boundingBox, queryString);
 							node.level = level;
 							node.numPoints = numPoints;
 							node.spacing = pco.spacing / Math.pow(2, level);

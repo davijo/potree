@@ -21,7 +21,7 @@ export class LasLazLoader {
 			this.version = version;
 		}
 
-		this.accessToken = opts.accessToken || '';
+		this.queryString = opts.queryString || '';
 	}
 
 	static progressCB () {
@@ -46,7 +46,7 @@ export class LasLazLoader {
 		}
 
 		let xhr = XHRFactory.createXMLHttpRequest();
-		xhr.open('GET', url + this.accessToken, true);
+		xhr.open('GET', url + this.queryString, true);
 		xhr.responseType = 'arraybuffer';
 		xhr.overrideMimeType('text/plain; charset=x-user-defined');
 		xhr.onreadystatechange = () => {

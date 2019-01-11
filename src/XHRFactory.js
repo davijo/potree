@@ -1,4 +1,18 @@
 
+const setXHRHeaders = (xhr, headers) => {
+	if (!headers) {
+		return;
+	}
+
+	for (key in headers) {
+		if (!headers.hasOwnProperty(key)) {
+			continue;
+		}
+
+		xhr.setRequestHeader(key, headers[key]);
+	}
+};
+
 const XHRFactory = {
 	config: {
 		withCredentials: false,
@@ -29,4 +43,4 @@ const XHRFactory = {
 	}
 };
 
-export {XHRFactory};
+export {XHRFactory, setXHRHeaders};

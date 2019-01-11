@@ -1,7 +1,7 @@
 
 
 import {PointCloudTreeNode} from "./PointCloudTree.js";
-import {XHRFactory} from "./XHRFactory.js";
+import {XHRFactory, setXHRHeaders} from "./XHRFactory.js";
 import {Utils} from "./utils.js";
 
 export class PointCloudOctreeGeometry{
@@ -22,7 +22,7 @@ export class PointCloudOctreeGeometry{
 
 export class PointCloudOctreeGeometryNode extends PointCloudTreeNode{
 
-	constructor(name, pcoGeometry, boundingBox, queryString = undefined){
+	constructor(name, pcoGeometry, boundingBox, queryString = undefined, requestHeaders = undefined){
 		super();
 
 		this.id = PointCloudOctreeGeometryNode.IDCount++;
@@ -45,6 +45,8 @@ export class PointCloudOctreeGeometryNode extends PointCloudTreeNode{
 				queryString.startsWith('?') ?
 					queryString : '?' + queryString : '';
 		}
+
+		this.requestHeaders = requestHeaders;
 	}
 
 	isGeometryNode(){
@@ -204,7 +206,7 @@ export class PointCloudOctreeGeometryNode extends PointCloudTreeNode{
 				let level = name.length - 1;
 				let boundingBox = Utils.createChildAABB(parentNode.boundingBox, index);
 
-				let currentNode = new PointCloudOctreeGeometryNode(name, pco, boundingBox, node.queryString);
+				let currentNode = new PointCloudOctreeGeometryNode(name, pco, boundingBox, node.queryString, node.requestHeaders);
 				currentNode.level = level;
 				currentNode.numPoints = decodedNumPoints;
 				currentNode.hasChildren = decoded[i].children > 0;
@@ -220,6 +222,10 @@ export class PointCloudOctreeGeometryNode extends PointCloudTreeNode{
 			let hurl = node.pcoGeometry.octreeDir + '/' + node.getHierarchyPath() + '/' + node.name + '.hrc';
 
 			let xhr = XHRFactory.createXMLHttpRequest();
+
+			// Custom headers
+			setXHRHeaders(xhr, node.requestHeaders);
+			
 			xhr.open('GET', hurl + node.queryString, true);
 			xhr.responseType = 'arraybuffer';
 			xhr.overrideMimeType('text/plain; charset=x-user-defined');

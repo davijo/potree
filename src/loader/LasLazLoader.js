@@ -1,5 +1,5 @@
 import {Version} from "../Version.js";
-import {XHRFactory} from "../XHRFactory.js";
+import {XHRFactory, setXHRHeaders} from "../XHRFactory.js";
 //import {workerPool} from '../PotreeCore.js';
 import workerPool from "../WorkerPool";
 
@@ -22,6 +22,7 @@ export class LasLazLoader {
 		}
 
 		this.queryString = opts.queryString || '';
+		this.requestHeaders = opts.requestHeaders;
 	}
 
 	static progressCB () {
@@ -46,7 +47,12 @@ export class LasLazLoader {
 		}
 
 		let xhr = XHRFactory.createXMLHttpRequest();
+		
+		// Set custom headers
+		setXHRHeaders(xhr, this.requestHeaders);
+
 		xhr.open('GET', url + this.queryString, true);
+
 		xhr.responseType = 'arraybuffer';
 		xhr.overrideMimeType('text/plain; charset=x-user-defined');
 		xhr.onreadystatechange = () => {

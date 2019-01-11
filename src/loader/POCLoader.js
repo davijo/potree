@@ -2,7 +2,7 @@
 
 import {PointCloudOctreeGeometry, PointCloudOctreeGeometryNode} from "../PointCloudOctreeGeometry.js";
 import {Version} from "../Version.js";
-import {XHRFactory} from "../XHRFactory.js";
+import {XHRFactory, setXHRHeaders} from "../XHRFactory.js";
 import {LasLazLoader} from "./LasLazLoader.js";
 import {BinaryLoader} from "./BinaryLoader.js";
 import {Utils} from "../utils.js";
@@ -21,9 +21,15 @@ export class POCLoader {
 						opts.queryString : '?' + opts.queryString : '';
 			}
 
+			let requestHeaders = opts.requestHeaders;
+
 			let pco = new PointCloudOctreeGeometry();
 			pco.url = url;
 			let xhr = XHRFactory.createXMLHttpRequest();
+
+			// Custom headers
+			setXHRHeaders(xhr, requestHeaders);
+
 			xhr.open('GET', url + queryString, true);
 
 			xhr.onreadystatechange = function () {
@@ -71,10 +77,12 @@ export class POCLoader {
 					if (fMno.pointAttributes === 'LAS') {
 						pco.loader = new LasLazLoader(fMno.version, {
 							queryString,
+							requestHeaders,
 						});
 					} else if (fMno.pointAttributes === 'LAZ') {
 						pco.loader = new LasLazLoader(fMno.version, {
 							queryString,
+							requestHeaders,
 						});
 					} else {
 						pco.loader = new BinaryLoader(fMno.version, boundingBox, fMno.scale);
@@ -86,7 +94,7 @@ export class POCLoader {
 					{ // load root
 						let name = 'r';
 
-						let root = new PointCloudOctreeGeometryNode(name, pco, boundingBox, queryString);
+						let root = new PointCloudOctreeGeometryNode(name, pco, boundingBox, queryString, requestHeaders);
 						root.level = 0;
 						root.hasChildren = true;
 						root.spacing = pco.spacing;
@@ -112,7 +120,7 @@ export class POCLoader {
 							//let boundingBox = POCLoader.createChildAABB(parentNode.boundingBox, index);
 							let boundingBox = Utils.createChildAABB(parentNode.boundingBox, index);
 
-							let node = new PointCloudOctreeGeometryNode(name, pco, boundingBox, queryString);
+							let node = new PointCloudOctreeGeometryNode(name, pco, boundingBox, queryString, requestHeaders);
 							node.level = level;
 							node.numPoints = numPoints;
 							node.spacing = pco.spacing / Math.pow(2, level);

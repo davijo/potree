@@ -48,10 +48,10 @@ export class LasLazLoader {
 
 		let xhr = XHRFactory.createXMLHttpRequest();
 		
+		xhr.open('GET', url + this.queryString, true);
+
 		// Set custom headers
 		setXHRHeaders(xhr, this.requestHeaders);
-
-		xhr.open('GET', url + this.queryString, true);
 
 		xhr.responseType = 'arraybuffer';
 		xhr.overrideMimeType('text/plain; charset=x-user-defined');

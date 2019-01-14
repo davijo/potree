@@ -27,10 +27,10 @@ export class POCLoader {
 			pco.url = url;
 			let xhr = XHRFactory.createXMLHttpRequest();
 
+			xhr.open('GET', url + queryString, true);
+
 			// Custom headers
 			setXHRHeaders(xhr, requestHeaders);
-
-			xhr.open('GET', url + queryString, true);
 
 			xhr.onreadystatechange = function () {
 				if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 0)) {

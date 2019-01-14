@@ -4,7 +4,7 @@ const setXHRHeaders = (xhr, headers) => {
 		return;
 	}
 
-	for (key in headers) {
+	for (let key in headers) {
 		if (!headers.hasOwnProperty(key)) {
 			continue;
 		}

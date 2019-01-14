@@ -222,11 +222,12 @@ export class PointCloudOctreeGeometryNode extends PointCloudTreeNode{
 			let hurl = node.pcoGeometry.octreeDir + '/' + node.getHierarchyPath() + '/' + node.name + '.hrc';
 
 			let xhr = XHRFactory.createXMLHttpRequest();
+			
+			xhr.open('GET', hurl + node.queryString, true);
 
 			// Custom headers
 			setXHRHeaders(xhr, node.requestHeaders);
 			
-			xhr.open('GET', hurl + node.queryString, true);
 			xhr.responseType = 'arraybuffer';
 			xhr.overrideMimeType('text/plain; charset=x-user-defined');
 			xhr.onreadystatechange = () => {
